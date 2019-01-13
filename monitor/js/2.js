@@ -24,7 +24,7 @@ function textInCenter(value, label) {
     
   // Draw value
   ctx.fillStyle = '#333333';
-  ctx.font = '24px sans-serif';
+  ctx.font = '14px sans-serif';
   ctx.textBaseline = 'middle';
 
   // Define text position
