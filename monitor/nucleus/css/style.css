@@ -4,7 +4,9 @@ html, body, canvas {
   height: 100%;
   display: block;
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 0;left: 0;
   overflow:hidden;
+}#gm-signature {
+    font-family: Helvetica,Arial,sans-serif;
+    display: none!important;z-index:-9999;opacity:0;
 }
