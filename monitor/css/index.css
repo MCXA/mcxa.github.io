@@ -1,4 +1,12 @@
 body{margin:0;}
+#screen {
+
+     z-index: -10;
+    opacity: 0;
+    animation: hide 4s 20;   
+
+}
+
 #frame{
     position: absolute;
     width: 100%;
