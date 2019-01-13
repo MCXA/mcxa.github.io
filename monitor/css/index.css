@@ -7,9 +7,6 @@ body{margin:0;}
 }
 #frame {
     position: relative;
-  /*  width: 315px;
-    top: 0%;
-    height: 215px; */
     width: 48%;
     max-width: 240px;
        max-height: 160px;
