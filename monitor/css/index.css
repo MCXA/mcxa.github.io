@@ -159,7 +159,7 @@ display:unset;
         }
         #frame {
             width: 155px;
-            height: 105px;
+          /*  height: 105px;*/
         }
     }
     
