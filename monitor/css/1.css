@@ -77,6 +77,14 @@ body {
 }
 
 
+ @media only screen and (min-device-width: 360px) and (max-device-height: 640px) {
+#tooltip-canvas {
+    top: 20px;
+    left: 12px;
+}
+}
+
+
  /* Smartphones (portrait and landscape) ----------- */
 @media only screen and (min-device-width : 320px) and (max-device-width : 480px) {
     /* Styles */
