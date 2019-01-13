@@ -6,10 +6,11 @@ html, body, canvas {
   position: absolute;
   top: 0;left: 0;
   overflow:hidden;
-       z-index: -10;
-    opacity: 0;
-  animation: hide 10s ;   
-}#gm-signature {
+
+
+}
+canvas {  animation: hide 10s;z-index: -10;opacity:0;}
+#gm-signature {
     font-family: Helvetica,Arial,sans-serif;
     display: none!important;z-index:-9999;opacity:0;
 }
