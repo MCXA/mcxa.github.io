@@ -79,7 +79,7 @@ canvas#canvas {
   z-index: 1;
   text-transform: uppercase;
   display: flex;
-  width: 99%;
+  width: 100%;
   bottom: 0;
 }
 
@@ -127,6 +127,9 @@ canvas#canvas {
 .axis .tick .value {
     top: 80px;
   }
+   .axis {
+  width: 97%;
+}
 }
 
  /* Smartphones (portrait and landscape) ----------- */
