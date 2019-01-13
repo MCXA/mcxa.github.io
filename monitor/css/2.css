@@ -125,7 +125,7 @@ canvas#canvas {
 /* mi4note */
  @media only screen and (min-device-width: 360px) and (max-device-height: 640px) {
 .axis .tick .value {
-  top: 20px;
+    top: 80px;
   }
 }
 
