@@ -53,8 +53,11 @@ body{margin:0;}
 
 
 
-
-
+ @media only screen and (min-device-width: 360px) and (max-device-height: 640px)
+#frame_1{
+    min-height: 245px;
+    height: 245px;
+}
 
  /* Smartphones (portrait and landscape) ----------- */
 @media only screen and (min-device-width : 320px) and (max-device-width : 480px) {
