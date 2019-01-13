@@ -1,0 +1,19 @@
+.container {
+   transform: translate(-50% -50%);
+   position: absolute;
+   /* left: 50%; */
+   /* right: 50%; */
+   top: 14px;
+   left: 55px;
+}
+
+.heart-path {
+   stroke-dasharray: 500;
+   stroke-dashoffset: 500;
+   animation: line 4s infinite;
+}
+@keyframes line {
+  to {
+    stroke-dashoffset: -500;
+  }
+}
