@@ -81,6 +81,11 @@ body {
     top: 20px;
     left: 12px;
 }
+.btn-reload {
+    top: 70px;
+    left: 45%;
+    width: 20px;
+ }
 }
 
 
