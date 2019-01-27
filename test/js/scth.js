@@ -80,14 +80,8 @@ function gotResult(err, results) {
   req.open('get', url);
   req.send();
 
-
-
-
-
-
 }
 
 window.onload = function() {
-
 
 }
