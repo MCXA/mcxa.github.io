@@ -24,12 +24,14 @@ function classifyVideo() {
   // Когда мы получим результат
 function gotResult(err, results) {
   // Результаты находятся в массиве, упорядоченном по вероятности.
-  select('#result').html(results[0].className);
+ // select('#result').html(results[0].className);
+ var word = results[0].className;
+  console.log(word);
+
+
   select('#probability').html(nf(results[0].probability, 0, 2));
   classifyVideo();
-}
-
-window.onload = function() {
+ 
 
   // Создаем объект XMLHttpRequest, при помощи которого будем отправлять запрос
   var req = new XMLHttpRequest();
@@ -43,8 +45,8 @@ window.onload = function() {
 
   // Формируем полный адрес запроса:
   url += '?key=' + API_KEY; // добавляем к запросу ключ API
-  url += '&text=перевод'; // текст для перевода
-  url += '&lang=ru-en'; // направление перевода: с русского на английский
+  url += '&text='+ word; // текст для перевода
+  url += '&lang=en-ru'; // направление перевода: с русского на английский
 
   // Таким образом формируется строка вида:
   // https://translate.yandex.net/api/v1.5/tr.json/translate?key=example_api_key&text=кролики&lang=ru-en
@@ -77,5 +79,15 @@ window.onload = function() {
   // Открываем соединение и отправляем
   req.open('get', url);
   req.send();
+
+
+
+
+
+
+}
+
+window.onload = function() {
+
 
 }
