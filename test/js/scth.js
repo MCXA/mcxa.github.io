@@ -13,7 +13,7 @@ function setup() {
 
 function modelReady() {
   // Change the status of the model once its ready
-  select('#status').html('Model Loaded');
+  select('#status').html('Модель загружена');
   // Call the classifyVideo function to start classifying the video
   classifyVideo();
 }
