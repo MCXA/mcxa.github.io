@@ -1,4 +1,4 @@
-var ctx = document.getElementById('myChart').getContext("2d");
+var ctx = document.getElementById('bioChart').getContext("2d");
 
 var gradientStroke = ctx.createLinearGradient(500, 0, 100, 0);
 gradientStroke.addColorStop(0, 'rgba(17, 86, 0, 0.69)');
