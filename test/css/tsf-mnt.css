@@ -1,5 +1,5 @@
 body {
-  font-family:sans-serif;
+    font-family:sans-serif;
 }
 #image {
 /*  display:flex;*/
@@ -8,7 +8,7 @@ img#img {
     width: 150px;
 }
 #image div {
-  flex: 1 1 0;
+    flex: 1 1 0;
 }
 #result {
     transition: .5s ease;
