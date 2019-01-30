@@ -29,7 +29,7 @@ img#img {
     width:290px;
 }
 #result:hover:after{width: 120px;left: 262px;transition:all .5s ease;}
-#result:hover:before{width: 120px;left: 262px;transition:all .5s ease;content: 'Подсказка';color:#4e8e05;}
+#result:hover:before{width: 120px;left: 257px;transition: all .5s ease;content: 'Подсказка';color: #4e8e05;margin: -17px;}
 #result::after {
     transition:all .5s ease;
     content: '.';
