@@ -11,13 +11,15 @@ img#img {
   flex: 1 1 0;
 }
 #result {
-    padding: 0px;
-    /* background-color: #CCC; */
+    padding: 7px;
+    background-color: #279e00a6;
     font-family: monospace;
+    color: #fff;
+    border-radius: 7px;
     position: absolute;
     width: 280px;
-    right: 265px;
-    top: 10em;
+    right: 60%;
+    top: 14em;
 }
 iframe#frame {
     border: 0;
