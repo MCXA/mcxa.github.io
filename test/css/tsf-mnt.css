@@ -22,7 +22,7 @@ img#img {
     right: 60%;
     top: 5em;
 }
-#result:hover {
+#result::hover {
     font-size:15px;
     width:290px;
 }
