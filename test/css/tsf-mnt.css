@@ -11,7 +11,7 @@ img#img {
     flex: 1 1 0;
 }
 #result {
-    transition: .5s ease;
+    transition:all .5s ease;
     padding: 7px;
     background-color: #4e8e05;
     font-family: monospace;
@@ -26,8 +26,9 @@ img#img {
     font-size:15px;
     width:290px;
 }
-#result:hover:after{width: 120px;left: 262px;}
+#result:hover:after{width: 120px;left: 262px;transition:all .5s ease;}
 #result::after {
+    transition:all .5s ease;
     content: '.';
     background-color: #4d8d04;
     color: transparent;
