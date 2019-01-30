@@ -21,6 +21,18 @@ img#img {
     right: 60%;
     top: 14em;
 }
+#result::after {
+    content:'.';
+    padding: 7px;
+    background-color: #279e00a6;
+    font-family: monospace;
+    color: transparent;
+    border-radius: 7px;
+    position: absolute;
+    width: 280px;
+    right: 60%;
+    top: 14em;
+}
 iframe#frame {
     border: 0;
     width: 100%;
