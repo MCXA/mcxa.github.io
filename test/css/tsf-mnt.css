@@ -45,17 +45,17 @@ img#img {
     z-index: 0;
 }
 #result::before {
-    transition:all .5s ease;
+    transition: all .5s ease;
     content: '.';
     background-color: #4d8d04;
     color: transparent;
     border-radius: 7px;
     position: absolute;
-    width: 165px;
+    width: 75px;
     height: 3px;
-    transform: rotate(50deg);
-    left: 237px;
-    top: 88px;
+    /* transform: rotate(50deg); */
+    left: 371px;
+    top: 150px;
     z-index: 0;
 }
 iframe#frame {
