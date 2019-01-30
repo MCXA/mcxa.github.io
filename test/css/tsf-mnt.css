@@ -27,10 +27,10 @@ img#img {
     color: transparent;
     border-radius: 7px;
     position: absolute;
-    width: 130px;
+    width: 150px;
     height: 3px;
     transform: rotate(50deg);
-    left: 253px;
+    left: 244px;
     top: 88px;
     z-index: 0;
 }
