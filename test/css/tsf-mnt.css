@@ -23,7 +23,8 @@ img#img {
     top: 5em;
 }
 #result:hover {
-font-size:15px;
+    font-size:15px;
+    width:290px;
 }
 #result::after {
     content: '.';
