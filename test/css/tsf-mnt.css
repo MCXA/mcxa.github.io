@@ -23,15 +23,16 @@ img#img {
 }
 #result::after {
     content: '.';
-    background-color: #279e00a6;
+    background-color: #4d8d04;
     color: transparent;
     border-radius: 7px;
     position: absolute;
-    width: 89px;
+    width: 130px;
     height: 3px;
     transform: rotate(50deg);
-    left: 275px;
+    left: 253px;
     top: 88px;
+    z-index: 0;
 }
 iframe#frame {
     border: 0;
