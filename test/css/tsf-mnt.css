@@ -26,7 +26,7 @@ img#img {
     font-size:15px;
     width:290px;
 }
-#result:hover:after{width: 120px;}
+#result:hover:after{width: 120px;left: 262px;}
 #result::after {
     content: '.';
     background-color: #4d8d04;
