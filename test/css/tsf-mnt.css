@@ -12,14 +12,14 @@ img#img {
 }
 #result {
     padding: 7px;
-    background-color: #279e00a6;
+    background-color: #4e8e05;
     font-family: monospace;
     color: #fff;
     border-radius: 7px;
     position: absolute;
     width: 280px;
     right: 60%;
-    top: 14em;
+    top: 5em;
 }
 #result::after {
     content: '.';
