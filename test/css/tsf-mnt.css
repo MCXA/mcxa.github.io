@@ -22,16 +22,16 @@ img#img {
     top: 14em;
 }
 #result::after {
-    content:'.';
-    padding: 7px;
+    content: '.';
     background-color: #279e00a6;
-    font-family: monospace;
     color: transparent;
     border-radius: 7px;
     position: absolute;
-    width: 280px;
-    right: 60%;
-    top: 14em;
+    width: 89px;
+    height: 3px;
+    transform: rotate(50deg);
+    left: 275px;
+    top: 88px;
 }
 iframe#frame {
     border: 0;
