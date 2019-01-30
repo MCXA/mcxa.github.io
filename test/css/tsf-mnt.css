@@ -21,6 +21,9 @@ img#img {
     right: 60%;
     top: 5em;
 }
+#result:hover {
+font-size:15px;
+}
 #result::after {
     content: '.';
     background-color: #4d8d04;
