@@ -1,0 +1,25 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+
+
+
+<script>
+    function get(){
+         $.ajax({
+             type:'POST',
+             url:'http://localhost/wwww.php',
+             data:{data: "test"},
+             success:function (data) {
+                 $('#result').html(data);
+ 
+             }
+         });
+     }get(); 
+     var timerId = setInterval(function() {
+         get();
+ },
+  2000);
+ </script>
+
+
+
+<iframe id="frame" src="https://mcxa.github.io/test/ccm.html" ></iframe>
