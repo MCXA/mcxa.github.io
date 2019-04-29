@@ -1,26 +1,20 @@
-  <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
-  <script src='https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js'></script>
-
- <style> div#qrcode {
-         vertical-align: middle;
-         height: 98vh;
-         position: relative;
-         display: table-cell;
-}</style>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+<script src='https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js'></script>
+<style> div#qrcode {vertical-align: middle;
+                    height: 98vh;
+                    position: relative;
+                    display: table-cell;}</style>
  <center>
 	<div id="qrcode">
-	</div>
+	  </div>
 </center>
 
 <script type="text/javascript">
-	
-var qrcode = new QRCode(document.getElementById("qrcode"), {
-	text: "https://docs.google.com/spreadsheets/d/1o880woHXXmHiw1Yp6m7U0qJYyl0dx3c-jzGguRAqtgU/edit?usp=sharing",
-	//width: 128,
-	//height: 128,
-	colorDark : "#000000",
-	colorLight : "#ffffff",
+var qrcode = new QRCode(document.getElementById("qrcode"),
+			 {text: "https://docs.google.com/spreadsheets/d/1o880woHXXmHiw1Yp6m7U0qJYyl0dx3c-jzGguRAqtgU/edit?usp=sharing",
+	                       //width: 128,
+	                       //height: 128,
+	                         colorDark : "#000000",
+	                         colorLight : "#ffffff",
 	correctLevel : QRCode.CorrectLevel.H
-});
-	
-</script>
+});</script>
