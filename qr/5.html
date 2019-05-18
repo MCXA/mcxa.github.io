@@ -1,3 +1,21 @@
-<h1>QR Код 5
-    
-</h1>
+<h1>QR Код 5</h1>
+
+<script src='js/jquery2.1.3.min.js'></script>
+<script src='js/qrcode.min.js'></script>
+<style> div#qrcode {vertical-align: middle;
+                    height: 70vh;
+                    position: relative;
+                    display: table-cell;}</style>
+<center>
+  <div id="qrcode">
+   </div>
+</center>
+<script type="text/javascript">
+var qrcode = new QRCode(document.getElementById("qrcode"),{
+                   text: "https://bit.ly/2VyiltA",                  // в кавычках ссылка 
+	               width: 75,                                   // ширина
+	               height: 75,                                  // высота
+	               colorDark : "#000000",
+	               colorLight : "#ffffff",
+	               correctLevel : QRCode.CorrectLevel.H
+});</script>
