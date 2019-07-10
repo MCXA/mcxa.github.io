@@ -47,7 +47,7 @@
       var canvas = document.getElementById('canvas');
       var context = canvas.getContext('2d');
       var image = document.getElementById('image');
-      window.fastThreshold = 45;
+      window.fastThreshold = 35;
       var doFindFeatures = function() {
         tracking.Fast.THRESHOLD = window.fastThreshold;
         context.drawImage(image, 0, 0, width, height);
