@@ -25,11 +25,47 @@
     left: 50%;
     top: 50%;
     margin: -200px 0 0 -200px;
-   
+    }
+    
+  .line_one{
+    background-color: black;
+    width: 105px;
+    height: 2px;
+    position: relative;
+    top: 393px;
+    left: 252px;
+    z-index: 10;
   }
+
+  .line_one::after{
+    content: "z";
+    color: transparent;
+    background-color: black;
+    width: 50px;
+    height: 2px;
+    position: absolute;
+    top: 77px;
+    left: 182px;
+    z-index: 10;
+}
+
+.line_one::before{
+  content: "z";
+    color: transparent;
+    background-color: black;
+    width: 111px;
+    height: 2px;
+    position: absolute;
+    top: 39px;
+    left: 88px;
+    z-index: 10;
+    transform: rotate(45deg);
+}
   </style>
 </head>
 <body>
+
+<div class="line_one">
 
   <div class="demo-frame">
     <div class="demo-container">
