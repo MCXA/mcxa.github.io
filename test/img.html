@@ -34,7 +34,7 @@
     window.onload = function() {
       var img = document.getElementById('img');
       var demoContainer = document.querySelector('.demo-container');
-      var tracker = new tracking.ColorTracker(['#88bcb1', 'cyan', 'yellow']);
+      var tracker = new tracking.ColorTracker(['#88bcb1', '#77ad98', 'yellow']);
       tracker.on('track', function(event) {
         event.data.forEach(function(rect) {
           window.plot(rect.x, rect.y, rect.width, rect.height, rect.color);
