@@ -64,7 +64,160 @@
 
 
 
+<style>
+@import url('https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap');
+    body{margin:0;font-family: 'Press Start 2P', cursive;}
 
+.bar{
+
+    position: absolute;
+    bottom: 0;
+    width: 150px;
+    z-index: 2;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    background: black;
+    height: 300px;
+    transition: height 7s ease, background 1s ease;
+    color:white;
+
+}
+div#block2 {
+    left: 165px;
+}
+div#block3 {
+    left: 338px;
+}
+
+span#val1 {
+
+    position: absolute;
+    bottom: 50%;
+    text-align: center;
+
+}
+
+span#val2 {
+
+position: absolute;
+bottom: 50%;
+text-align: center;
+
+}
+
+span#val3 {
+
+position: absolute;
+bottom: 50%;
+text-align: center;
+
+}
+
+</style>
+
+<div class="bars">
+<div class="wrp">
+<div class="bar" id="block1"><span id="val1"></span></div>
+</div>
+
+<div class="bar" id="block2"><span id="val2"></span></div>
+
+<div class="bar" id="block3"><span id="val3"></span></div>
+
+</div>
+
+
+
+<script>
+        function getRndInteger(min, max) {
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+
+
+
+        function random() {
+
+          var height1 = getRndInteger(15,301);
+
+          var height2 = getRndInteger(15,301);
+
+          var height3 = getRndInteger(15,301);
+
+          var height4 = getRndInteger(15,301);
+
+          var height5 = getRndInteger(15,301);
+
+          var height6 = getRndInteger(15,301);
+
+          var height7 = getRndInteger(15,301);
+
+          var height8 = getRndInteger(15,301);
+
+          var theight1 = getRndInteger(15,301);
+
+          var theight2 = getRndInteger(15,301);
+
+            var Element1 = document.getElementById("block1");
+            var Element2 = document.getElementById("block2");
+            var Element3 = document.getElementById("block3");
+            var Element4 = document.getElementById("block4");
+            var Element5 = document.getElementById("block5");
+            var Element6 = document.getElementById("block6");
+            var Element7 = document.getElementById("block7");
+            var Element8 = document.getElementById("block8");
+
+            var tElement1 = document.getElementById("tblock1");
+            var tElement2 = document.getElementById("tblock2");
+
+
+           
+               Element1.style=";height:"+height1+"px";
+               document.getElementById("val1").innerHTML = height1 + " <i class='fa fa-thermometer-full' aria-hidden='true'></i>";
+          
+             //  tElement1.style=";height:"+theight1+"px";
+           //    document.getElementById("tval1").innerHTML = theight1 + " <i class='fa fa-lightbulb-o' aria-hidden='true'></i>";
+            
+                Element2.style=";height:"+height2+"px";
+                document.getElementById("val2").innerHTML = height2 + " <i class='fa fa-tint' aria-hidden='true'></i>";
+               
+
+                Element3.style=";height:"+height3+"px";
+                document.getElementById("val3").innerHTML = height3 + " <i class='fa fa-thermometer-full' aria-hidden='true'></i>";
+
+                Element4.style=";height:"+height4+"px";
+                document.getElementById("val4").innerHTML = height4 + " <i class='fa fa-tint' aria-hidden='true'></i>";
+
+                Element5.style=";height:"+height5+"px";
+                document.getElementById("val5").innerHTML = height5 + " <i class='fa fa-thermometer-full' aria-hidden='true'></i>";
+
+                Element6.style=";height:"+height6+"px";
+                document.getElementById("val6").innerHTML = height6 + " <i class='fa fa-tint' aria-hidden='true'></i>";
+
+                Element7.style=";height:"+height7+"px";
+                document.getElementById("val7").innerHTML = height7 + " <i class='fa fa-thermometer-full' aria-hidden='true'></i>";
+
+                Element8.style=";height:"+height8+"px";
+                document.getElementById("val8").innerHTML = height8 + " <i class='fa fa-tint' aria-hidden='true'></i>";
+
+
+
+        }
+        setTimeout(random, 1000);
+
+
+
+
+
+
+
+
+
+
+        setInterval(random, 3000);
+
+        </script>
 
 
 
