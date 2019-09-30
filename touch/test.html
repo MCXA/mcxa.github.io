@@ -70,7 +70,7 @@
   
     
 <div class="top_headr" id="top_headr"> 
-    <center id="centr" /*style="top: 0px;"*/>
+    <center id="centr">
     <a href="https://www.timacad.ru/" class="header__title-container">
                    <img class="header__logo" src="https://www.timacad.ru/img/vector/logo-respons.svg" alt="МСХА">
                     <p class="header__type">
@@ -84,8 +84,8 @@
         
      
     
-    <button type="button" style="position: fixed;left: 15px;border-radius: 3px;top: 10px;background-color: #3d7648;color: white;border: none;font-weight: 500;" 
-onclick="document.getElementById('top_headr').style.height = '45px'; document.getElementById('centr').style.display = 'none'">
+    <button id="batn" type="button" style="position: fixed;left: 15px;border-radius: 3px;top: 10px;background-color: #3d7648;color: white;border: none;font-weight: 500;" 
+onclick="document.getElementById('top_headr').style.height = '45px'; document.getElementById('centr').style.display = 'none'; document.getElementById('batn').innerHTML='развернуть'">
 свернуть</button>
 
             <div class="lower-nav nav nav-pills nav-fill">
@@ -197,7 +197,6 @@ onclick="document.getElementById('top_headr').style.height = '45px'; document.ge
             } catch (e) {
             }
         });
-
         var n = d.getElementsByTagName("script")[0],
             s = d.createElement("script"),
             f = function () {
@@ -206,7 +205,6 @@ onclick="document.getElementById('top_headr').style.height = '45px'; document.ge
         s.type = "text/javascript";
         s.async = true;
         s.src = "https://mc.yandex.ru/metrika/watch.js";
-
         if (w.opera == "[object Opera]") {
             d.addEventListener("DOMContentLoaded", f, false);
         } else {
@@ -222,13 +220,10 @@ onclick="document.getElementById('top_headr').style.height = '45px'; document.ge
 <script async="" src="./РГАУ-МСХА_files/js"></script>
 <script>
     window.dataLayer = window.dataLayer || [];
-
     function gtag() {
         dataLayer.push(arguments);
     }
-
     gtag('js', new Date());
-
     gtag('config', 'UA-112482961-1');
 </script>
 
