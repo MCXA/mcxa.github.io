@@ -61,7 +61,7 @@
 
 <body>
   
-    <center style="top: 0px;">
+    <center id="centr"style="top: 0px;">
 <div class="top_headr"> 
     <a href="https://www.timacad.ru/" class="header__title-container">
                    <img class="header__logo" src="https://www.timacad.ru/img/vector/logo-respons.svg" alt="МСХА">
@@ -73,6 +73,10 @@
                 </a>  
   </div>
      </center>
+    
+    <button type="button" style="position:fixed;" 
+onclick="document.getElementById('top_headr').style.height = '15px'; document.getElementById('centr').style.display = 'none'">
+свернуть</button>
 
             <div class="lower-nav nav nav-pills nav-fill">
     <div class="content-wrapper content-wrapper_lower-nav p-r js-nav-container">
