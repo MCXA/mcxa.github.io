@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <style>p#float {
+            display: inline;}
+            p#integer {
+            display: inline;}
+            
+            
+            </style>
+
+        <script>
+
+        </script>
+
+<body>
+
+<span>Float : <p id="float"></p></span>
+<br>
+
+<span>Integer : <p id="integer"></p></span>
+
+<script>
+
+
+
+function getFloat(){
+val = Math.random();
+document.getElementById("float").innerHTML = val.toFixed(3);
+}
+getFloat();
+setInterval(getFloat, 1000);
+
+function getRndInteger(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
+function getInteger(){
+  document.getElementById("integer").innerHTML = getRndInteger(30, 50)
+}
+getInteger();
+setInterval(getInteger , 1000);
+</script>
+
+</body>
+</html>
