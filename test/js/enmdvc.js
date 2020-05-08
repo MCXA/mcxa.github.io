@@ -1,4 +1,3 @@
-
 'use strict';
 
 var videoElement = document.querySelector('video');
