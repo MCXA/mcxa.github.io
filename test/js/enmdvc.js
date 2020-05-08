@@ -66,7 +66,6 @@ function handleError(error) {
 
 
 // Перечисление в цикле камер и микрофонов
-
 navigator.mediaDevices.enumerateDevices()
 .then(function(devices) {
   devices.forEach(function(device) {
