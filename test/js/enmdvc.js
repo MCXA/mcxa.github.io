@@ -27,7 +27,7 @@ function gotDevices(deviceInfos) {
       let a = 1; let b = a++;
     //  option.text = deviceInfo.label + b || `Camera ${videoSelect.length + 1}`;
     //  option.text = deviceInfo.label || `Camera ${videoSelect.length + 1}`;
-      option.text = deviceInfo.label+' '+deviceInfo.deviceId || `Camera ${videoSelect.length + 1}`;
+        option.text = deviceInfo.label+' '+deviceInfo.deviceId || `Camera ${videoSelect.length + 1}`;
       videoSelect.appendChild(option);
     }
   }
