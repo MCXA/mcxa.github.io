@@ -45,6 +45,7 @@ function getStream() {
     audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
     video: {deviceId: videoSource ? {exact: videoSource} : undefined}
   };
+  
   return navigator.mediaDevices.getUserMedia(constraints).
     then(gotStream).catch(handleError);
 }
