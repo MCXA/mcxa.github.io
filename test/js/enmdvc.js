@@ -25,7 +25,7 @@ function gotDevices(deviceInfos) {
       audioSelect.appendChild(option);
     } else if (deviceInfo.kind === 'videoinput') {
       let a = 1;
-      option.text = deviceInfo.label a++ || `Camera ${videoSelect.length + 1}`;
+      option.text = deviceInfo.label + a++ || `Camera ${videoSelect.length + 1}`;
     //  option.text = deviceInfo.label || `Camera ${videoSelect.length + 1}`;
     //  option.text = deviceInfo.deviceId || `Camera ${videoSelect.length + 1}`;
       videoSelect.appendChild(option);
