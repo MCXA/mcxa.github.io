@@ -61,6 +61,7 @@ function gotStream(stream) {
   videoElement.srcObject = stream;
 }
 
+
 function handleError(error) {
   console.error('Error: ', error);
 }
