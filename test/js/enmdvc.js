@@ -25,8 +25,9 @@ function gotDevices(deviceInfos) {
       option.text = deviceInfo.label || `Microphone ${audioSelect.length + 1}`;
       audioSelect.appendChild(option);
     } else if (deviceInfo.kind === 'videoinput') {
+      option.text = deviceInfo.label + 1 || `Camera ${videoSelect.length + 1}`;
     //  option.text = deviceInfo.label || `Camera ${videoSelect.length + 1}`;
-        option.text = deviceInfo.deviceId || `Camera ${videoSelect.length + 1}`;
+    //  option.text = deviceInfo.deviceId || `Camera ${videoSelect.length + 1}`;
       videoSelect.appendChild(option);
     }
   }
