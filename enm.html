@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+<head>
+
+
+<meta charset="utf-8">
+<meta name="description" content="mediaDevices.enumerateDevices()">
+<meta name="author" content="mediaDevices.enumerateDevices()">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta itemprop="name" content="mediaDevices.enumerateDevices()t">
+<meta itemprop="image" content="/images/icons/icon192.png">
+<meta id="theme-color" name="theme-color" content="#fff">
+
+<link rel="icon" href="/images/icons/icon192.png">
+
+<base target="_blank">
+
+
+<title>mediaDevices.enumerateDevices()</title>
+
+<link rel="stylesheet" href="../../css/main.css">
+
+<style>
+h1 {
+  margin: 0 0 24px 0;
+}
+select {
+  width: 150px;
+}
+video {
+  margin: 10px 0 0 0;
+}
+</style>
+
+</head>
+
+<body>
+
+<div id="container">
+
+  <div class="select">
+    <label for="audioSource">Звук: </label><select id="audioSource"></select>
+  </div>
+
+  <div class="select">
+    <label for="videoSource">Изображение: </label><select id="videoSource"></select>
+  </div>
+
+  <video autoplay muted playsinline></video>
+
+  <script async src="js/enmdvc.js"></script>
+
+</div>
+
+</body>
+</html>
