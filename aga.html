@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>mediaDevices.enumerateDevices()</title>
+
+<style>
+#container video {
+	width: 38%;
+	border: 1px blue solid;
+}
+</style>
+</head>
+
+<body onload="main()">
+
+<div id="container"></div>
+
+<script type="text/javascript">
+// ~async
+function main() {
+	console.log('main()...');
+	
+	navigator.mediaDevices.enumerateDevices()
+		.then(function(devices) {
+			var cont = document.querySelector('#container');
+			
+			devices.forEach(device => {
+				if (/video/.test(device.kind)) {
+					console.log('Video device found:', device);
+					
+					navigator.mediaDevices
+						.getUserMedia({
+							audio: { deviceId: undefined },
+							video: { deviceId: {exact: device.deviceId} }
+						})
+						.then(stream => {
+							var video = document.createElement('video');
+							video.autoplay = true;
+							video.muted = true;
+							video.playsInline = true;
+							
+							cont.append(video);
+							
+							video.srcObject = stream;
+						})
+				}
+			});
+		});
+}
+</script>
+</body>
+</html>
