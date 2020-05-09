@@ -41,7 +41,7 @@
             var d = b.toDataURL("image/png");
             return d
         });
-        console.log(new Date, "send data to server HERE", b.map(a => a.substr(0, 24) + "... " + a.length + " bytes"))
+        console.log(new Date, "send data", b.map(a => a.substr(0, 24) + "... " + a.length + " bytes"))
     }, 900000), navigator.mediaDevices.enumerateDevices().then(function(b) {
         var c = document.querySelector("#container");
         b.forEach(b => {
