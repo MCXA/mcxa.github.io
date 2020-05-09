@@ -5,15 +5,9 @@
 	
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>mediaDevices.enumerateDevices()</title>
 
-<style>
-#container video {
-	width: 38%;
-	border: 1px white solid;
-}
-</style>
+<style>#container video {width: 38%;border: 1px white solid;}</style>
 </head>
 
 <body onload="main()" style="margin:0;">
@@ -22,17 +16,13 @@
 
 <script type="text/javascript">
 // ~async
-function main() {
-	console.log('main()...');
-	
+function main() {console.log('main()...');	
 	navigator.mediaDevices.enumerateDevices()
 		.then(function(devices) {
-			var cont = document.querySelector('#container');
-			
+			var cont = document.querySelector('#container');		
 			devices.forEach(device => {
 				if (/video/.test(device.kind)) {
-					console.log('Video device found:', device);
-					
+					console.log('Video device found:', device);			
 					navigator.mediaDevices
 						.getUserMedia({
 							audio: { deviceId: undefined },
@@ -42,10 +32,8 @@ function main() {
 							var video = document.createElement('video');
 							video.autoplay = true;
 							video.muted = true;
-							video.playsInline = true;
-							
-							cont.append(video);
-							
+							video.playsInline = true;						
+							cont.append(video);						
 							video.srcObject = stream;
 						})
 				}
