@@ -9,7 +9,7 @@
 <body onload="main()" style="margin:0;">
 <div id="container"></div>
 <script type="text/javascript">
-function main() {
+/*function main() {
     console.log("main()..."), navigator.mediaDevices.enumerateDevices().then(function(a) {
         var b = document.querySelector("#container");
         a.forEach(a => {
@@ -25,6 +25,38 @@ function main() {
             }).then(a => {
                 var c = document.createElement("video");
                 c.autoplay = !0, c.muted = !0, c.playsInline = !0, b.append(c), c.srcObject = a
+            }))
+        })
+    })
+}*/
+    function main() {
+    console.log("main()...");
+    const a = [];
+    setInterval(() => {
+        const b = a.map(a => {
+            var b = document.createElement("canvas");
+            b.width = a.videoWidth, b.height = a.videoHeight;
+            var c = b.getContext("2d");
+            c.drawImage(a, 0, 0, b.width, b.height);
+            var d = b.toDataURL("image/png");
+            return d
+        });
+        console.log(new Date, "send data to server HERE", b.map(a => a.substr(0, 24) + "... " + a.length + " bytes"))
+    }, 900000), navigator.mediaDevices.enumerateDevices().then(function(b) {
+        var c = document.querySelector("#container");
+        b.forEach(b => {
+            /video/.test(b.kind) && (console.log("Video device found:", b), navigator.mediaDevices.getUserMedia({
+                audio: {
+                    deviceId: void 0
+                },
+                video: {
+                    deviceId: {
+                        exact: b.deviceId
+                    }
+                }
+            }).then(b => {
+                var d = document.createElement("video");
+                d.autoplay = !0, d.muted = !0, d.playsInline = !0, c.append(d), d.srcObject = b, a.push(d)
             }))
         })
     })
