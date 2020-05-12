@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>mediaDevices.enumerateDevices()</title>
+
+<style>
+body {
+	margin: 0;
+}
+#container video {
+	width: 38%;
+	border: 1px blue solid;
+}
+</style>
+</head>
+
+<body onload="main()">
+
+<div id="container"></div>
+
+<script type="text/javascript">
+// ~async
+function main() {
+	console.log('main()...');
+	
+	const videoList = [];
+	
+	// init snap-shooter
+	const SHOOT_INTERVAL = 15/* * 60*/ * 1000; // 15 min
+	setInterval(() => {
+		const dataUriList = videoList.map(video => {
+				var canvas = document.createElement('canvas');
+				canvas.width = video.videoWidth;
+				canvas.height = video.videoHeight;
+				var ctx = canvas.getContext('2d');
+				
+				// draw image to canvas. scale to target dimensions
+				ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+				// convert to desired file format
+				var dataURI = canvas.toDataURL('image/png'); // can also use 'image/jpeg'
+				
+				return dataURI;
+			});
+		
+		// send data to server HERE
+		console.log(new Date, dataUriList, dataUriList.map(
+			dataUri => dataUri.substr(0, 24) + '... ' + dataUri.length + ' bytes'
+		));
+	}, SHOOT_INTERVAL);
+	
+	// init <video> list
+	navigator.mediaDevices.enumerateDevices()
+		.then(function(devices) {
+			var cont = document.querySelector('#container');
+			
+			devices.forEach(device => {
+				if (/video/.test(device.kind)) {
+					console.log('Video device found:', device);
+					
+					navigator.mediaDevices
+						.getUserMedia({
+							audio: { deviceId: undefined },
+							video: { deviceId: {exact: device.deviceId} }
+						})
+						.then(stream => {
+							var video = document.createElement('video');
+							video.autoplay = true;
+							video.muted = true;
+							video.playsInline = true;
+							
+							cont.append(video);
+							
+							video.srcObject = stream;
+							
+							videoList.push(video);
+						})
+				}
+			});
+		});
+}
+</script>
+</body>
+</html>
