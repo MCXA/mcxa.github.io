@@ -91,5 +91,27 @@ function main() {
 }
 </script>
 	
+	        <script>
+            // метод encodeURIComponent предотвращает прием нежеланных данных
+            // на сервере
+
+             var login = "login";
+             var pass = "pass";
+            //var data = "login &token=1";
+            //var json = JSON.stringify({username: "Камиль",pass: 123});
+
+            var xhr = new XMLHttpRequest();
+
+            var body = "login=" + encodeURIComponent(login) + "&pass=" + encodeURIComponent(pass);
+            xhr.open("POST", 'https://онлайнмастерская.рф/cam/savr.php', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.send(body);
+
+            xhr.onreadystatechange = function() {
+                console.log(xhr.responseText);
+            }
+
+        </script>
+	
 </body>
 </html>
