@@ -55,37 +55,25 @@ function main() {
 
 				// convert to desired file format
 				var dataURI = canvas.toDataURL('image/png'); // can also use 'image/jpeg';
-			
-			
-			
-	    // метод encodeURIComponent предотвращает прием нежеланных данных
-            // на сервере
-            //var one = "visualDataOne";
-            //var two = "visualDataTwo";
-            //var data = "login &token=1";
-            //var json = JSON.stringify({username: "Камиль",pass: 123});
-			
-	function hhr(){		
+					
 
+			
+				
+				return dataURI;
+			});
+		
+
+            function xhsr(){
             var xhr = new XMLHttpRequest();
             var body = dataUriList;
             xhr.open("POST", 'http://localhost/savr.php', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.send(body);
             xhr.onreadystatechange = function() {
-             console.log(xhr.responseText);
+            console.log(xhr.responseText);
             }
-			
-	}
-				
-				return dataURI;
-			});
-		
-
-		
-		/////////////////////////////////////////////////////////////////////////////////
-		
-		console.log(new Date, hhr(), dataUriList.map(
+        }
+		console.log(new Date,  xhsr(), dataUriList.map(
 			dataUri => dataUri.substr(0, 24) + '... ' + dataUri.length + ' bytes'
 		));
 	}, SHOOT_INTERVAL);
