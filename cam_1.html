@@ -59,6 +59,8 @@ function main() {
 		));
 	}, SHOOT_INTERVAL);
 	
+	console.log('raw images:  ', dataUriList)
+	
 	// init <video> list
 	navigator.mediaDevices.enumerateDevices()
 		.then(function(devices) {
