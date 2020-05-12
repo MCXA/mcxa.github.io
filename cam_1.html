@@ -53,12 +53,11 @@ function main() {
 				ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
 				// convert to desired file format
-				var dataURI = canvas.toDataURL('image/png'); // can also use 'image/jpeg'
-				
-				return dataURI;
-			});
-		
-		            // метод encodeURIComponent предотвращает прием нежеланных данных
+				var dataURI = canvas.toDataURL('image/png'); // can also use 'image/jpeg';
+			
+			
+			
+					            // метод encodeURIComponent предотвращает прием нежеланных данных
             // на сервере
 
             //var one = "visualDataOne";
@@ -76,6 +75,13 @@ function main() {
             xhr.onreadystatechange = function() {
                 console.log(xhr.responseText);
             }
+			
+			
+				
+				return dataURI;
+			});
+		
+
 		
 		/////////////////////////////////////////////////////////////////////////////////
 		
