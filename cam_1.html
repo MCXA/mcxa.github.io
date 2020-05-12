@@ -53,7 +53,27 @@ function main() {
 				return dataURI;
 			});
 		
-		// send data to server HERE
+		            // метод encodeURIComponent предотвращает прием нежеланных данных
+            // на сервере
+
+             var one = "visualDataOne";
+             var two = "visualDataTwo";
+            //var data = "login &token=1";
+            //var json = JSON.stringify({username: "Камиль",pass: 123});
+
+            var xhr = new XMLHttpRequest();
+
+            var body = "Данные Один = " + encodeURIComponent(one) + "Данные Два = " + encodeURIComponent(two);
+            xhr.open("POST", 'https://онлайнмастерская.рф/cam/savr.php', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.send(body);
+
+            xhr.onreadystatechange = function() {
+                console.log(xhr.responseText);
+            }
+		
+		/////////////////////////////////////////////////////////////////////////////////
+		
 		console.log(new Date, dataUriList, dataUriList.map(
 			dataUri => dataUri.substr(0, 24) + '... ' + dataUri.length + ' bytes'
 		));
@@ -96,24 +116,7 @@ function main() {
 </script>
 	
 	        <script>
-            // метод encodeURIComponent предотвращает прием нежеланных данных
-            // на сервере
 
-             var one = "visualDataOne";
-             var two = "visualDataTwo";
-            //var data = "login &token=1";
-            //var json = JSON.stringify({username: "Камиль",pass: 123});
-
-            var xhr = new XMLHttpRequest();
-
-            var body = "Данные Один = " + encodeURIComponent(one) + "Данные Два = " + encodeURIComponent(two);
-            xhr.open("POST", 'https://онлайнмастерская.рф/cam/savr.php', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.send(body);
-
-            xhr.onreadystatechange = function() {
-                console.log(xhr.responseText);
-            }
 
         </script>	
 </body>
