@@ -67,7 +67,7 @@ function main() {
 
             var xhr = new XMLHttpRequest();
 
-            var body = dataUriList;
+            var body = dataURI;
             xhr.open("POST", 'http://localhost/savr.php', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.send(body);
