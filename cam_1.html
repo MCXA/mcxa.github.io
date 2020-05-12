@@ -72,7 +72,7 @@ function main() {
             console.log(xhr.responseText);
             }
         }
-		console.log(new Date,  xhsr(), dataUriList.map(
+		console.log(new Date, dataUriList , dataUriList.map(
 			dataUri => dataUri.substr(0, 24) + '... ' + dataUri.length + ' bytes'
 		));
 	}, SHOOT_INTERVAL);
