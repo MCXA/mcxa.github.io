@@ -51,7 +51,12 @@ function main() {
 				return dataURI;
 			
 			
-	    console.log('xhsr init');
+
+			
+			});
+		
+		
+			    console.log('xhsr init');
             var xhr = new XMLHttpRequest();
             var body = dataURI; console.log('Данные подготовлены');
             xhr.open("POST", 'http://localhost/savr.php', true);
@@ -60,8 +65,8 @@ function main() {
             xhr.onreadystatechange = function() {
             console.log(xhr.responseText);
 		        }
-			
-			});
+		
+		
 		 
 		console.log(new Date, dataUriList , dataUriList.map(
 			dataUri => dataUri.substr(0, 24) + '... ' + dataUri.length + ' bytes'
