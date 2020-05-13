@@ -56,8 +56,8 @@ function main() {
 				return dataURI;
 			});
 		
-
-            function xhsr(){ 
+            console.log('xhsr init');
+            function xhsr(){   console.log('xhsr start');
             var xhr = new XMLHttpRequest();
             var body = dataUriList.toString(); console.log('Данные подготовлены');
             xhr.open("POST", 'http://localhost/savr.php', true);
