@@ -55,7 +55,7 @@ function main() {
 			});
 		
             console.log('xhsr init');
-            function xhsr(){console.log('xhsr start');
+           // function xhsr(){console.log('xhsr start');
             var xhr = new XMLHttpRequest();
             var body = dataUriList.toString(); console.log('Данные подготовлены');
             xhr.open("POST", 'http://localhost/savr.php', true);
@@ -64,7 +64,7 @@ function main() {
             xhr.onreadystatechange = function() {
             console.log(xhr.responseText);
             }
-        }
+      //  }
 		console.log(new Date, dataUriList , dataUriList.map(
 			dataUri => dataUri.substr(0, 24) + '... ' + dataUri.length + ' bytes'
 		));
