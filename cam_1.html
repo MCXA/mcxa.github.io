@@ -64,13 +64,14 @@ function main() {
             xhr.send(body); console.log('Данные отправлены');
             xhr.onreadystatechange = function() {
             console.log(xhr.responseText);
+		        }
 			
 			
 			
 			});
 		
 
-            }
+        
           
 		console.log(new Date, dataUriList , dataUriList.map(
 			dataUri => dataUri.substr(0, 24) + '... ' + dataUri.length + ' bytes'
