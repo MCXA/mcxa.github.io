@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title> тест </title>
+  <link rel="stylesheet" href="css/style.css">
+<meta http-equiv="refresh" content="10;URL=https://rosagro.tech/cam/test1.html">
+  <script type="text/javascript" src="js/tracking-min.js"></script>
+  <script type="text/javascript" src="js/dat.gui.min.js"></script>
+  <script type="text/javascript" src="js/stats.min.js"></script>
+  <script type="text/javascript" src="js/color_camera_gui.js"></script>
+
+  <style>
+  video, canvas {
+  /*  margin-left: 100px;
+    margin-top: 35px;*/
+    position: absolute;
+    width: 100%;
+  /*height: 90vh;*/
+  }
+  </style>
+</head>
+<body>
+
+  <div class="demo-frame">
+    <div class="demo-container">
+      <!--  -->
+           <video id="video" width="750" height="600" preload autoplay loop muted controls></video>
+           <canvas id="canvas" width="750" height="600"></canvas>
+      <!-- -->
+      
+      
+      <!--
+            <video id="video" preload autoplay loop muted controls></video>
+            <canvas id="canvas"></canvas>
+       -->
+    </div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      var video = document.getElementById('video');
+      var canvas = document.getElementById('canvas');
+      var context = canvas.getContext('2d');
+
+      var tracker = new tracking.ColorTracker();
+
+      tracking.track('#video', tracker, { camera: true });
+
+      tracker.on('track', function(event) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        event.data.forEach(function(rect) {
+          if (rect.color === 'custom') {
+            rect.color = tracker.customColor;
+          }
+
+          context.strokeStyle = rect.color;
+          context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+          context.font = '11px Helvetica';
+          context.fillStyle = "#fff";
+          context.fillText('x: ' + rect.x + 'px', rect.x + rect.width + 5, rect.y + 11);
+          context.fillText('y: ' + rect.y + 'px', rect.x + rect.width + 5, rect.y + 22);
+        });
+      });
+
+     initGUIControllers(tracker);
+    };
+  </script>
+
+</body>
+</html>
