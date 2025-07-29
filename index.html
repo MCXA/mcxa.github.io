@@ -625,5 +625,174 @@
       
     </div>
   </div>
+
+<br><br>
+
+      <!-- Экономический анализ -->
+      <div class="phase">
+        <div class="phase-header">💰 Экономический анализ: Стоимость и рентабельность проекта</div>
+        <div class="phase-content">
+          
+          <div class="step">
+            <h3>📊 Предпосылки и ключевые допущения</h3>
+            <ul>
+              <li>Проект рассчитан на 12 месяцев</li>
+              <li>Команда из 5× FTE: 1 Bioinformatician/AI-Engineer, 1 Molecular Biologist, 2 Lab Technicians, 1 Project Manager</li>
+              <li>Инфраструктура: локальный сервер с 2× GPU или эквивалент облака</li>
+              <li>Лаборатория: оснащение под секвенирование, культивирование клещей, зелёная зона для валидации</li>
+              <li>Валидация: тесты эффективности на 100 м² модельной теплицы</li>
+            </ul>
+          </div>
+          
+          <div class="step">
+            <h3>💸 Детализация затрат</h3>
+            <div style="overflow-x: auto; margin-top: 15px;">
+              <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <thead>
+                  <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <th style="padding: 15px; text-align: left; border-bottom: 2px solid #ddd;">Статья расходов</th>
+                    <th style="padding: 15px; text-align: left; border-bottom: 2px solid #ddd;">Описание</th>
+                    <th style="padding: 15px; text-align: right; border-bottom: 2px solid #ddd;">Сумма, $</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px 15px; font-weight: 600;">Персонал (5 FTE)</td>
+                    <td style="padding: 12px 15px;">Средняя зарплата ≈ $50 000 / FTE/год</td>
+                    <td style="padding: 12px 15px; text-align: right; font-weight: 600;">250 000</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px 15px; font-weight: 600;">Серверное оборудование / облако</td>
+                    <td style="padding: 12px 15px;">2× GPU-сервера OR аренда облака для ML</td>
+                    <td style="padding: 12px 15px; text-align: right; font-weight: 600;">50 000</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px 15px; font-weight: 600;">Лабораторное оборудование и расходники</td>
+                    <td style="padding: 12px 15px;">Секвенирование, реактивы, культуральные среды, ПЦР-батчи</td>
+                    <td style="padding: 12px 15px; text-align: right; font-weight: 600;">40 000</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px 15px; font-weight: 600;">Валидация в теплице</td>
+                    <td style="padding: 12px 15px;">Подготовка, посадка растений, население клещами, мониторинг</td>
+                    <td style="padding: 12px 15px; text-align: right; font-weight: 600;">30 000</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px 15px; font-weight: 600;">Лицензии на ПО и базы данных</td>
+                    <td style="padding: 12px 15px;">Коммерческие биоинфо-библиотеки, платные датасеты мутаций</td>
+                    <td style="padding: 12px 15px; text-align: right; font-weight: 600;">10 000</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px 15px; font-weight: 600;">Накладные расходы (~15%)</td>
+                    <td style="padding: 12px 15px;">Утилиты, администрирование, офис, страховки</td>
+                    <td style="padding: 12px 15px; text-align: right; font-weight: 600;">60 000</td>
+                  </tr>
+                  <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <td style="padding: 15px; font-weight: 700; font-size: 1.1rem;">ИТОГО</td>
+                    <td style="padding: 15px;"></td>
+                    <td style="padding: 15px; text-align: right; font-weight: 700; font-size: 1.1rem;">440 000</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="step">
+            <h3>📈 Расчёт экономической выгоды</h3>
+            <ul>
+              <li><strong>Эффективность предатора:</strong> Повышение скорости поедания клещей на 20% за счёт целевых мутаций</li>
+              <li><strong>Модельный клиент:</strong> Теплица площадью 1 га (10 000 м²), типичная выручка $200 000/га за сезон</li>
+              <li><strong>Без AI-подхода:</strong> Потери от паутинного клеща ≈ 15% → ущерб $30 000</li>
+              <li><strong>С оптимизированным фитосейулюсом:</strong> Потери 15%×(1–0.20) ≈ 12% → ущерб $24 000</li>
+              <li><strong>Снижение потерь:</strong> $6 000/га/сезон</li>
+            </ul>
+            
+            <div class="tech-details">
+              <h4>Масштабирование:</h4>
+              <ul>
+                <li><strong>Сети небольших теплиц (10 га):</strong> $6 000 × 10 га = $60 000 выгоды за один сезон</li>
+                <li><strong>Крупный агрохолдинг (100 га):</strong> $6 000 × 100 га = $600 000</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="step">
+            <h3>🎯 Окупаемость (ROI)</h3>
+            <div style="overflow-x: auto; margin-top: 15px;">
+              <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <thead>
+                  <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <th style="padding: 15px; text-align: left; border-bottom: 2px solid #ddd;">Параметр</th>
+                    <th style="padding: 15px; text-align: right; border-bottom: 2px solid #ddd;">Значение</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px 15px; font-weight: 600;">Общие инвестиции</td>
+                    <td style="padding: 12px 15px; text-align: right; font-weight: 600;">$440 000</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px 15px; font-weight: 600;">Выгода для 10 га теплиц</td>
+                    <td style="padding: 12px 15px; text-align: right; font-weight: 600;">$60 000/сезон</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px 15px; font-weight: 600;">Выгода для 100 га (агрохолдинг)</td>
+                    <td style="padding: 12px 15px; text-align: right; font-weight: 600;">$600 000/сезон</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px 15px; font-weight: 600;">Срок окупаемости для 10 га</td>
+                    <td style="padding: 12px 15px; text-align: right; font-weight: 600;">≈ 7 лет (440 000 / 60 000)</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px 15px; font-weight: 600;">Срок окупаемости для 100 га</td>
+                    <td style="padding: 12px 15px; text-align: right; font-weight: 600;">≈ 0.7 года (440 000 / 600 000)</td>
+                  </tr>
+                  <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <td style="padding: 15px; font-weight: 700; font-size: 1.1rem;">ROI (100 га, 1 сезон)</td>
+                    <td style="padding: 15px; text-align: right; font-weight: 700; font-size: 1.1rem;">≈ 36% за сезон</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="tech-details">
+              <h4>Ключевые выводы:</h4>
+              <ul>
+                <li>Для сети крупных теплиц (≥ 50 га) проект окупается менее чем за один сезон</li>
+                <li>Для малых хозяйств (до 10 га) выгоднее объединяться в кооператив или использовать SaaS-модель</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="step">
+            <h3>💡 Варианты монетизации и снижения рисков</h3>
+            <ul>
+              <li><strong>Лицензирование:</strong> Продажа доступа к «библиотеке» оптимизированных штаммов другим хозяйствам</li>
+              <li><strong>SaaS-модель:</strong> Подписка на обновления моделей мутаций и протоколов разведения</li>
+              <li><strong>Гранты и субсидии:</strong> Государственная поддержка агротехнологий (до 50% капитальных затрат)</li>
+              <li><strong>Пилот с отраслевым партнёром:</strong> Разделение затрат и ускоренный выход на рынок</li>
+            </ul>
+          </div>
+          
+        </div>
+      </div>
+      
+      <!-- Финальное заключение -->
+      <div class="conclusion">
+        <h2>💼 Финальный вывод</h2>
+        <p>
+          AI-проект по in silico-мутациям фитосейулюсов требует существенных вложений (~$440 000), 
+          но при масштабе ≥ 50 га окупается уже в первый год за счёт значительного сокращения потерь урожая. 
+          Для мелких хозяйств стоит рассмотреть распределённые схемы лицензирования или государственную поддержку.
+        </p>
+        <p style="margin-top: 20px; font-size: 1rem; opacity: 0.9;">
+          Проект демонстрирует высокую рентабельность для крупных агрохолдингов с ROI до 36% за сезон, 
+          что делает его привлекательным инвестиционным решением в сфере агротехнологий.
+        </p>
+      </div>
+      
+    </div>
+  </div>
+
+
 </body>
 </html>
