@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Инфографика: Схема связей — Аркадий Галков / Аркатаг / РОО ФКСХО</title>
+
+<!-- Подключаем vis-network через CDN -->
+<script src="https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.js"></script>
+
+<style>
+  /* Базовые стили страницы */
+  :root{
+    --bg:#0b1020;
+    --panel:#071026;
+    --card:#0f1724;
+    --muted:#94a3b8;
+    --accent:#ff8a00;
+    --ok:#03a87c;
+    --danger:#ff4d6d;
+    --alleged:#c084fc;
+  }
+  html,body{
+    height:100%;
+    margin:0;
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: linear-gradient(180deg,var(--bg), #081020 120%);
+    color:#e6eef6;
+  }
+  .wrap{
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap:12px;
+    height:100vh;
+    padding:12px;
+    box-sizing:border-box;
+  }
+
+  /* Область графа */
+  #network {
+    background:
+      radial-gradient(circle at 10% 10%, rgba(255,255,255,0.02), transparent 4%),
+      linear-gradient(180deg, rgba(255,255,255,0.01), transparent 50%);
+    border-radius:12px;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.6);
+    padding:8px;
+    position:relative;
+  }
+
+  /* Правая панель (инфо о выбранном узле) */
+  .panel {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:12px;
+    padding:14px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    overflow:auto;
+  }
+  .title {
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:8px;
+  }
+  .sub {
+    color:var(--muted);
+    font-size:13px;
+    margin-bottom:12px;
+  }
+  .field {
+    margin-bottom:10px;
+  }
+  .field label {
+    display:block;
+    color:var(--muted);
+    font-size:12px;
+    margin-bottom:6px;
+  }
+  .chip {
+    display:inline-block;
+    padding:6px 10px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.03);
+    color:var(--muted);
+    font-size:13px;
+    margin-right:8px;
+  }
+
+  /* Легенда */
+  .legend {
+    margin-top:10px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    color:var(--muted);
+    font-size:13px;
+  }
+  .legend-row{display:flex;align-items:center;gap:8px}
+  .dot{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .dot.solid{box-shadow:0 0 8px rgba(0,0,0,0.5)}
+  .edge-label{font-size:12px;color:var(--muted)}
+
+  /* Список действий */
+  .actions{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+  .btn{
+    background:linear-gradient(180deg,var(--accent),#ff6d00);
+    color:#071026;
+    font-weight:700;
+    padding:8px 10px;
+    border-radius:8px;
+    border:none;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(255,138,0,0.12);
+  }
+  .btn.secondary{
+    background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04);
+    box-shadow:none;
+  }
+
+  footer{position:fixed;left:12px;bottom:12px;color:var(--muted);font-size:12px}
+  a.source{color:var(--muted);text-decoration:underline dotted}
+  .status-verified{color:var(--ok);font-weight:700}
+  .status-alleged{color:var(--alleged);font-weight:700}
+  pre{white-space:pre-wrap;word-break:break-word;background:rgba(255,255,255,0.02);padding:8px;border-radius:6px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Левая часть: граф -->
+    <div id="network"></div>
+
+    <!-- Правая панель: информация по выбранному узлу/ребру -->
+    <div class="panel" id="info">
+      <div class="title">Граф связей — краткая справка</div>
+      <div class="sub">Наведите курсор на узел, кликните — откроется подробная карточка. Пунктирными линиями обозначены связи, требующие проверки / обозначенные как <em>alleged</em> (утверждается).</div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="chip">Статус: <span id="global-evidence" style="font-weight:700;margin-left:6px">Показаны ВСЕ связи</span></div>
+        <div class="chip">Данные: INN / OGRN / ЄДРПОУ (где есть)</div>
+      </div>
+
+      <div id="card-empty">
+        <div style="color:var(--muted)">Выберите узел или связь, чтобы увидеть карточку.</div>
+      </div>
+
+      <!-- Подробная карточка узла; скрыта по умолчанию -->
+      <div id="card" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div id="node-label" class="title"></div>
+            <div id="node-sub" class="sub"></div>
+          </div>
+          <div id="node-status" style="text-align:right"></div>
+        </div>
+
+        <div class="field">
+          <label>Идентификаторы (INN / OGRN / ЄДРПОУ)</label>
+          <div id="node-ids"><em>Нет данных</em></div>
+        </div>
+
+        <div class="field">
+          <label>Роль / Краткое описание</label>
+          <div id="node-role" style="color:#dbeafe"></div>
+        </div>
+
+        <div class="field">
+          <label>Источники / Примечания</label>
+          <div id="node-sources" style="color:var(--muted)"></div>
+        </div>
+
+        <div class="field">
+          <label>Рекомендации для проверки (следствие)</label>
+          <div id="node-actions" style="color:var(--muted)"></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="btn-copy-json">Скопировать JSON узла</button>
+          <button class="btn secondary" id="btn-show-connections">Показать соседние связи</button>
+        </div>
+      </div>
+
+      <div class="legend" style="margin-top:14px;">
+        <div class="title" style="font-size:14px">Легенда</div>
+        <div class="legend-row"><span class="dot solid" style="background:var(--accent)"></span> <div class="edge-label">Главный/активный узел (высокий приоритет)</div></div>
+        <div class="legend-row"><span class="dot solid" style="background:#03a87c"></span> <div class="edge-label">Юридическое лицо (организация)</div></div>
+        <div class="legend-row"><span class="dot solid" style="background:#6ee7b7"></span> <div class="edge-label">Физическое лицо (участник / ИП)</div></div>
+        <div class="legend-row"><span class="dot solid" style="background:#93c5fd"></span> <div class="edge-label">Гос.структуры (агентства / разведка)</div></div>
+        <div class="legend-row"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4"/></svg> <div class="edge-label">Пунктир — alleged / требует проверки</div></div>
+        <div class="legend-row"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#60a5fa" stroke-width="2"/></svg> <div class="edge-label">Сплошная — документально подтверждённая юр. связь (выписка/ЕГРЮЛ)</div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Схема составлена на базе материалов расследования (пользовательские данные) и публичных регистрационных карточек. Всё, что помечено <span class="status-alleged">ALLEGED</span> — гипотеза/утверждение и требует официальной верификации.
+  </footer>
+
+<script>
+/*
+  JavaScript: создаём интерактивный граф с помощью vis-network.
+  Комментарии: далее — полностью раскомментированный код, объясняющий каждый блок.
+*/
+
+// ------------------------
+// 1) Узлы (nodes) — массив объектов
+// Каждый узел имеет поля:
+// id: уникальный идентификатор,
+// label: краткий текст,
+// title: расширенная подсказка при наведении,
+// group: тип для стилизации,
+// meta: объект — дополнительные поля (inn, ogrn, role, notes, evidence_status)
+// ------------------------
+const nodesData = [
+  // Центральный оператор / координатор
+  {
+    id: 'galkov_arkadiy',
+    label: 'Галков, Аркадий\n(INN 771806434601)',
+    title: 'Галков Аркадий Витальевич — INN 771806434601',
+    group: 'person',
+    meta:{
+      inn:'771806434601',
+      ogrn:'',
+      edrpou:'',
+      role:'Координатор / предполагаемый руководитель операций (alleged)',
+      evidence:'partial',
+      notes:'Фигурирует в реестрах как участник нескольких юр.лиц; в расследовании указан как координатор (alleged).',
+      sources:'пользовательское досье + карточки предприятий'
+    }
+  },
+
+  // Arkatag (медцентр — юридическое лицо)
+  {
+    id:'arkatag',
+    label:'ООО «АРКАТАГ»\n(INN 7736202707)',
+    title:'ООО "АРКАТАГ" — INN 7736202707, OGRN 1037736011609',
+    group:'org',
+    meta:{
+      inn:'7736202707',
+      ogrn:'1037736011609',
+      role:'Медцентр / операционная площадка (verified reg.)',
+      evidence:'verified',
+      notes:'Юридическая регистрация подтверждена выпиской в ЕГРЮЛ.',
+      sources:'публичные реестры'
+    }
+  },
+
+  // Зарубин — гендир
+  {
+    id:'zarubin_igor',
+    label:'Зарубин, Игорь\n(INN 772491919217)',
+    title:'Игорь Зарубин — гендиректор ООО "АРКАТАГ"',
+    group:'person',
+    meta:{
+      inn:'772491919217',
+      role:'Генеральный директор ООО "АРКАТАГ" (verified reg.)',
+      evidence:'verified',
+      notes:'Указан в регистрационных карточках как руководитель.',
+      sources:'публичные реестры'
+    }
+  },
+
+  // Ян Галков — ИП (рэпер)
+  {
+    id:'jan_galkov',
+    label:'Галков, Ян\n(ИП 774342781654)',
+    title:'Ян Галков — ИП 774342781654, ОГРНИП 322774600018207',
+    group:'person',
+    meta:{
+      inn:'774342781654',
+      ogrnip:'322774600018207',
+      role:'Публичная фигура / ИП (рэпер)',
+      evidence:'verified',
+      notes:'ИП в реестре; используется как финансовая поверхность.',
+      sources:'публичные базы (ЕГРИП)'
+    }
+  },
+
+  // РОО ФКСХО (НКО)
+  {
+    id:'rooo_fcksho',
+    label:'РОО «ФКСХО»\n(INN 9500024077)',
+    title:'РОО ФКСХО — INN 9500024077, OGRN 1249500001629',
+    group:'org',
+    meta:{
+      inn:'9500024077',
+      ogrn:'1249500001629',
+      role:'Региональная общественная организация (НКО) — упомянута как площадка легитимизации (alleged/verified reg.)',
+      evidence:'verified',
+      notes:'Регистрация НКО подтверждена; роль в операциях — предмет расследования.',
+      sources:'публичные реестры + пользовательские материалы'
+    }
+  },
+
+  // Орел Артур (украинская привязка — ЄДРПОУ)
+  {
+    id:'orel_artur',
+    label:'Орел, Артур\n(ЄДРПОУ 37959632)',
+    title:'Орел Артур — украинские карточки: ЄДРПОУ 37959632 и др.',
+    group:'person_ua',
+    meta:{
+      edrpou:'37959632',
+      role:'Консультант / тактик (alleged)',
+      evidence:'alleged',
+      notes:'Украинские карточки и пользовательские утверждения указывают на участие/консультации.',
+      sources:'публичные карточки UA + пользовательский материал'
+    }
+  },
+
+  // Список участников РОО (из вашей таблицы) — все с INN
+  {
+    id:'sivolonskaya_t',
+    label:'Сиволонская Т.\n(INN 910622070759)',
+    title:'Сиволонская Татьяна — INN 910622070759',
+    group:'person',
+    meta:{inn:'910622070759', role:'Учредитель/председатель РОО (verified reg.)', evidence:'verified', notes:'Указана в реестре РОО', sources:'реестры'}
+  },
+  {
+    id:'sivolonskaya_l',
+    label:'Сиволонская Л.\n(INN 910622115470)',
+    title:'Сиволонская Лариса — INN 910622115470',
+    group:'person',
+    meta:{inn:'910622115470', role:'Учредитель РОО', evidence:'verified', notes:'Реестр', sources:'реестры'}
+  },
+  {
+    id:'sivolonsky_p',
+    label:'Сиволонский П.\n(INN 950001557168)',
+    title:'Сиволонский Пётр — INN 950001557168',
+    group:'person',
+    meta:{inn:'950001557168', role:'Учредитель РОО', evidence:'verified', notes:'Реестр', sources:'реестры'}
+  },
+  {
+    id:'ilchenko_y',
+    label:'Ильченко Ю.\n(INN 950000459785)',
+    title:'Ильченко Юрий — INN 950000459785',
+    group:'person',
+    meta:{inn:'950000459785', role:'Учредитель / региональная связь', evidence:'verified', notes:'Реестр', sources:'реестры'}
+  },
+  {
+    id:'tremba_o',
+    label:'Тремба О.\n(INN 950002485903)',
+    title:'Тремба Олег — INN 950002485903',
+    group:'person',
+    meta:{inn:'950002485903', role:'Учредитель РОО', evidence:'verified', notes:'Реестр', sources:'реестры'}
+  },
+  {
+    id:'asaulenko_v',
+    label:'Асауленко В.\n(INN 910619890776)',
+    title:'Асауленко Виталий — INN 910619890776',
+    group:'person',
+    meta:{inn:'910619890776', role:'Учредитель РОО', evidence:'verified', notes:'Реестр', sources:'реестры'}
+  },
+  {
+    id:'kretova_k',
+    label:'Кретова К.\n(INN 165710560053)',
+    title:'Кретова Екатерина — INN 165710560053',
+    group:'person',
+    meta:{inn:'165710560053', role:'Учредитель РОО', evidence:'verified', notes:'Реестр; в файле приписаны обвинения — требует проверки', sources:'реестры + пользовательский материал'}
+  },
+
+  // Доп. коммерческие юрлица и исполнители
+  {
+    id:'karuna',
+    label:'ООО «КАРУНА»',
+    title:'ООО "КАРУНА" — см. карточки (связь с Зарубиным / Аркатаг)',
+    group:'org',
+    meta:{inn:'(см. реестры)', role:'Поставщик/контрагент', evidence:'partial', notes:'Публичные карточки указывают на связь', sources:'публичные базы'}
+  },
+  {
+    id:'ztm_sd',
+    label:'ООО «ЗТМ-СД / ЗТМ-Сервис»',
+    title:'ЗТМ-СД — компании, где фигурирует Галков',
+    group:'org',
+    meta:{inn:'(см. реестры)', role:'Коммерческие проекты, доли у Галкова', evidence:'partial', notes:'архивные карточки', sources:'публичные базы'}
+  },
+
+  // Исполнители / рэперы / ИП
+  {
+    id:'ilya_krymov',
+    label:'Крымов, Илья\n(ИП 672909125682)',
+    title:'Илья Крымов — ИП 672909125682',
+    group:'person',
+    meta:{inn:'672909125682', role:'Админ / контент-оператор', evidence:'verified', notes:'ИП в реестре', sources:'ЕГРИП'}
+  },
+  {
+    id:'kadin',
+    label:'Кадин\n(ИП 100123976927?)',
+    title:'Кадин — ИП (публичные карточки, уточнить ОГРНИП)',
+    group:'person',
+    meta:{inn:'100123976927', role:'Исполнитель / локальный оператор (partial)', evidence:'partial', notes:'Публичные карточки ИП/аккаунты', sources:'публичные базы'}
+  },
+  {
+    id:'tsarkov',
+    label:'Царьков\n(ИП 772152043158)',
+    title:'Царьков — ИП 772152043158',
+    group:'person',
+    meta:{inn:'772152043158', role:'PR / реклама / распространение контента', evidence:'verified', notes:'ИП в реестре', sources:'публичные базы'}
+  },
+
+  // Государственные субъекты (узлы: без INN — официальные агентства)
+  {
+    id:'guo_uap',
+    label:'ГУОП (Ukraine)\n(Main State Guard)',
+    title:'Головне управління державної охорони України — узел (госорган)',
+    group:'gov',
+    meta:{role:'Гос.орган (упоминание в утверждениях) — нет INN', evidence:'n/a', notes:'Узел госоргана: присутствует для отображения возможных связей (alleged).'}
+  },
+  {
+    id:'gur_ukr',
+    label:'ГУР (Ukraine)\n(Main Intelligence)',
+    title:'Головне управління розвідки України — узел (госорган)',
+    group:'gov',
+    meta:{role:'Гос.орган (разведка) — нет INN', evidence:'n/a', notes:'Узел госоргана для схемы (alleged связь отмечена пунктиром).'}
+  },
+
+  // Enroll DB — центральный репозиторий профилей (данных)
+  {
+    id:'enroll_db',
+    label:'Enroll-DB\n(Profiles)',
+    title:'Центральная база Enroll-профилей (alleged)',
+    group:'data',
+    meta:{role:'Репозиторий собранных профилей (alleged)', evidence:'alleged', notes:'Требуется лог/серверный дамп для верификации', sources:'пользовательский материал'}
+  },
+
+  // Telecom infra
+  {
+    id:'telecom_bts',
+    label:'Базовые станции / BTS\n(telco logs)',
+    title:'Инфраструктура мобильной связи — лог-серверы операторов',
+    group:'infra',
+    meta:{role:'Телеком-инфраструктура (логов) — требуется запрос у операторов', evidence:'n/a', notes:'Узел для привязки событий/логов (следствие)'}
+  },
+
+  // Внешние покупатели (гипотетические)
+  {
+    id:'external_buyers',
+    label:'Покупатели профилей\n(внешние / спецслужбы?)',
+    title:'Внешние покупатели/спецслужбы (hypothetical; alleg.)',
+    group:'external',
+    meta:{role:'Потенциальные получатели данных (alleged)', evidence:'alleged', notes:'Узел для отображения возможной коммерческой/поставочной цепочки'}
+  }
+];
+
+
+// ------------------------
+// 2) Рёбра (edges)
+// Каждое ребро имеет:
+// from, to — id узлов,
+// label: описание связи,
+// dashes: true/false — пунктир (alleged),
+// width: толщина линии,
+// color: цвет,
+// arrows: направление('to','from','middle')
+// meta: дополнительные поля (evidence_status, note)
+// ------------------------
+const edgesData = [
+  // Верифицированные юр. связи
+  {
+    from:'zarubin_igor', to:'arkatag',
+    label:'Ген. директор → зарегистрировано (verified)',
+    dashes:false, color:{color:'#60a5fa'},
+    arrows:'to', width:2,
+    meta:{evidence:'verified', note:'зарегистрирован в ЕГРЮЛ как руководитель'}
+  },
+  {
+    from:'arkatag', to:'rooo_fcksho',
+    label:'Рабочие взаимодействия (operational links; partial)',
+    dashes:true, color:{color:'#94a3b8'},
+    arrows:'to', width:1,
+    meta:{evidence:'partial', note:'взаимодействия/участия упоминались в материалах'}
+  },
+
+  // Gal'kov — Arkatag (операционная связь; partial)
+  {
+    from:'galkov_arkadiy', to:'arkatag',
+    label:'Операционный контроль / участие (alleged)',
+    dashes:true, color:{color:'#c084fc'},
+    arrows:'to', width:2,
+    meta:{evidence:'alleged', note:'утверждается в пользовательском досье'}
+  },
+
+  // Gal'kov - ZTM (юридические доли — partial/verified depending on public registry)
+  {
+    from:'galkov_arkadiy', to:'ztm_sd',
+    label:'Доли / участие в компаниях (public cards)',
+    dashes:false, color:{color:'#60a5fa'},
+    arrows:'to', width:2,
+    meta:{evidence:'partial', note:'юридические карточки указывают на участие'}
+  },
+
+  // Jan - Gal'kov (семейная связь / кумовство)
+  {
+    from:'galkov_arkadiy', to:'jan_galkov',
+    label:'Родственная связь / куратор',
+    dashes:false, color:{color:'#6ee7b7'},
+    arrows:'to', width:2,
+    meta:{evidence:'verified', note:'семейная связь; Ян — ИП, публично известен'}
+  },
+
+  // RОО ФКСХО — участники (эти связи — VERIFIED as registered)
+  { from:'rooo_fcksho', to:'sivolonskaya_t', label:'Учредитель', dashes:false, color:{color:'#03a87c'}, arrows:'to', width:2, meta:{evidence:'verified'} },
+  { from:'rooo_fcksho', to:'sivolonskaya_l', label:'Учредитель', dashes:false, color:{color:'#03a87c'}, arrows:'to', width:2, meta:{evidence:'verified'} },
+  { from:'rooo_fcksho', to:'sivolonsky_p', label:'Учредитель', dashes:false, color:{color:'#03a87c'}, arrows:'to', width:2, meta:{evidence:'verified'} },
+  { from:'rooo_fcksho', to:'ilchenko_y', label:'Учредитель', dashes:false, color:{color:'#03a87c'}, arrows:'to', width:2, meta:{evidence:'verified'} },
+  { from:'rooo_fcksho', to:'tremba_o', label:'Учредитель', dashes:false, color:{color:'#03a87c'}, arrows:'to', width:2, meta:{evidence:'verified'} },
+  { from:'rooo_fcksho', to:'asaulenko_v', label:'Учредитель', dashes:false, color:{color:'#03a87c'}, arrows:'to', width:2, meta:{evidence:'verified'} },
+  { from:'rooo_fcksho', to:'kretova_k', label:'Учредитель', dashes:false, color:{color:'#03a87c'}, arrows:'to', width:2, meta:{evidence:'verified'} },
+
+  // Rappers / operators connections (partial)
+  { from:'rappers_group', to:'galkov_arkadiy', label:'Вербовка / куратор (alleged)', dashes:true, color:{color:'#c084fc'}, arrows:'to', width:1, meta:{evidence:'alleged'} },
+  { from:'rappers_group', to:'enroll_db', label:'Поставка контактов / данных (alleged)', dashes:true, color:{color:'#c084fc'}, arrows:'to', width:1, meta:{evidence:'alleged'} },
+
+  // соединения с исполнителями (ИП)
+  { from:'jan_galkov', to:'rappers_group', label:'вокал / публичное лицо', dashes:false, color:{color:'#6ee7b7'}, arrows:'to', width:1, meta:{evidence:'verified'} },
+  { from:'ilya_krymov', to:'rappers_group', label:'админ / контент', dashes:false, color:{color:'#6ee7b7'}, arrows:'to', width:1, meta:{evidence:'verified'} },
+  { from:'kadin', to:'rappers_group', label:'локальный оператор / ИП', dashes:false, color:{color:'#6ee7b7'}, arrows:'to', width:1, meta:{evidence:'partial'} },
+  { from:'tsarkov', to:'rappers_group', label:'PR / реклама', dashes:false, color:{color:'#6ee7b7'}, arrows:'to', width:1, meta:{evidence:'verified'} },
+
+  // Консультации (alleged)
+  { from:'galkov_arkadiy', to:'orel_artur', label:'Консультации / тактики (alleged)', dashes:true, color:{color:'#c084fc'}, arrows:'to', width:2, meta:{evidence:'alleged'} },
+
+  // Enroll DB <-- Arkatag
+  { from:'arkatag', to:'enroll_db', label:'Записи пациентов → Enroll DB (alleged)', dashes:true, color:{color:'#c084fc'}, arrows:'to', width:2, meta:{evidence:'alleged'} },
+
+  // Enroll DB → telecom_bts (alleged "управление")
+  { from:'enroll_db', to:'telecom_bts', label:'(alleged) управление/пространственное воздействие', dashes:true, color:{color:'#c084fc'}, arrows:'to', width:2, meta:{evidence:'alleged', note:'требуется логи операторов (CDR/BTS) и RF-экспертиза'} },
+
+  // telecom_bts <-- Украинские исполнители (alleged physical access)
+  { from:'ukr_execs', to:'telecom_bts', label:'(alleged) физический доступ / исполнение', dashes:true, color:{color:'#c084fc'}, arrows:'to', width:1, meta:{evidence:'alleged'} },
+
+  // Орел ↔ GOU / GUR (alleged)
+  { from:'orel_artur', to:'guo_uap', label:'(alleged) контакты / поставки', dashes:true, color:{color:'#c084fc'}, arrows:'to', width:1, meta:{evidence:'alleged'} },
+  { from:'orel_artur', to:'gur_ukr', label:'(alleged) связи / консультации', dashes:true, color:{color:'#c084fc'}, arrows:'to', width:1, meta:{evidence:'alleged'} },
+
+  // Enroll DB → external_buyers (alleged sale)
+  { from:'enroll_db', to:'external_buyers', label:'(alleged) продажа/поставка профилей', dashes:true, color:{color:'#c084fc'}, arrows:'to', width:2, meta:{evidence:'alleged', note:'требуется финансовый трекинг'} },
+
+  // Some additional legal/commercial links (partial)
+  { from:'arkatag', to:'karuna', label:'контракты/поставки (partial)', dashes:false, color:{color:'#60a5fa'}, arrows:'to', width:1, meta:{evidence:'partial'} },
+  { from:'galkov_arkadiy', to:'ztm_sd', label:'юридическое участие / доли (partial)', dashes:false, color:{color:'#60a5fa'}, arrows:'to', width:2, meta:{evidence:'partial'} }
+];
+
+
+// ------------------------
+// 3) Стили для групп узлов
+// Здесь задаём визуальные стили: цвет, форму и т.д. для каждой группы.
+// ------------------------
+const groups = {
+  person:{
+    shape:'box',
+    color:{background:'#2563eb',border:'#1349b1',highlight:{background:'#60a5fa',border:'#60a5fa'}},
+    font:{color:'#fff'}
+  },
+  person_ua:{
+    shape:'box',
+    color:{background:'#7c3aed',border:'#5b21b6',highlight:{background:'#c084fc',border:'#c084fc'}},
+    font:{color:'#fff'}
+  },
+  org:{
+    shape:'ellipse',
+    color:{background:'#0ea5a2',border:'#087f7c',highlight:{background:'#6ee7b7',border:'#6ee7b7'}},
+    font:{color:'#04111b'}
+  },
+  gov:{
+    shape:'hexagon',
+    color:{background:'#60a5fa',border:'#2b6cb0',highlight:{background:'#93c5fd',border:'#93c5fd'}},
+    font:{color:'#041028'}
+  },
+  data:{
+    shape:'database',
+    color:{background:'#ff8a00',border:'#ff6d00',highlight:{background:'#ffbe66',border:'#ffbe66'}},
+    font:{color:'#041028'}
+  },
+  infra:{
+    shape:'triangle',
+    color:{background:'#94a3b8',border:'#64748b',highlight:{background:'#cbd5e1',border:'#cbd5e1'}},
+    font:{color:'#0b1220'}
+  },
+  external:{
+    shape:'dot',
+    color:{background:'#ff4d6d',border:'#b91c1c',highlight:{background:'#ff9a9f',border:'#ff9a9f'}},
+    font:{color:'#fff'}
+  },
+  group:{ shape:'star', color:{background:'#6ee7b7',border:'#16a34a'}, font:{color:'#041028'} }
+};
+
+
+// ------------------------
+// 4) Подготовка data для vis.Network
+// Преобразуем nodesData и edgesData в форматы, понятные vis
+// ------------------------
+const nodes = new vis.DataSet(
+  nodesData.map(n => {
+    return {
+      id: n.id,
+      label: n.label,
+      title: n.title,
+      group: n.group,
+      // store meta в поле custom для возможности копировать как JSON
+      custom: n.meta
+    };
+  })
+);
+
+const edges = new vis.DataSet(
+  edgesData.map(e => {
+    return {
+      from: e.from,
+      to: e.to,
+      label: e.label,
+      dashes: e.dashes,
+      arrows: e.arrows,
+      width: e.width || 1,
+      color: e.color || {color:'#94a3b8'},
+      // кладём дополнительные метаданные
+      meta: e.meta
+    };
+  })
+);
+
+// ------------------------
+// 5) Инициализация сети
+// options — настраиваем поведение force layout, physics, interaction и т.д.
+// ------------------------
+const container = document.getElementById('network');
+
+const data = { nodes, edges };
+
+const options = {
+  // physics: делает force-directed (распихивает узлы)
+  physics: {
+    enabled: true,
+    barnesHut: {
+      gravitationalConstant: -15000,
+      centralGravity: 0.2,
+      springLength: 200,
+      springConstant: 0.05,
+      damping: 0.4
+    },
+    maxVelocity: 50
+  },
+  interaction: {
+    hover: true,
+    navigationButtons: true,
+    tooltipDelay: 200,
+    selectable:true
+  },
+  layout:{
+    improvedLayout:true
+  },
+  nodes: {
+    shape: 'dot',
+    size:20,
+    font:{size:14,multi:true},
+    shadow:true
+  },
+  edges:{
+    smooth:{type:'continuous'},
+    color:{inherit:false}
+  },
+  groups: groups
+};
+
+// создаём Network
+const network = new vis.Network(container, data, options);
+
+// ------------------------
+// 6) Обработчики событий (hover, select, click)
+// ------------------------
+network.on('click', function(params) {
+  // Если клик по узлу — показать карточку
+  if(params.nodes && params.nodes.length>0){
+    const nodeId = params.nodes[0];
+    const item = nodes.get(nodeId);
+    showNodeCard(item);
+  } else {
+    // очистить выбор
+    hideNodeCard();
+  }
+});
+
+// при наведении можно показывать подсказку — vis уже делает это через title
+// но добавим выделение соседей при наведении
+network.on('hoverNode', function(params){
+  const nodeId = params.node;
+  const connected = network.getConnectedNodes(nodeId);
+  // подсветим соседей (уменьшим opacity у остальных)
+  nodes.forEach(n => {
+    const el = nodes.get(n.id);
+    // если не в connected -> уменьшить (симуляция)
+    if(n.id !== nodeId && connected.indexOf(n.id) === -1){
+      network.updateNode(n.id, {opacity:0.25});
+    } else {
+      network.updateNode(n.id, {opacity:1});
+    }
+  });
+});
+
+network.on('blurNode', function(params){
+  // восстановим opacity
+  nodes.forEach(n => network.updateNode(n.id, {opacity:1}));
+});
+
+// ------------------------
+// 7) UI: функции для карточки справа
+// ------------------------
+const card = document.getElementById('card');
+const cardEmpty = document.getElementById('card-empty');
+
+function showNodeCard(nodeItem){
+  // Показать карточку и заполнить поля
+  card.style.display='block';
+  cardEmpty.style.display='none';
+  document.getElementById('node-label').innerText = nodeItem.label;
+  document.getElementById('node-sub').innerText = nodeItem.title || '';
+  // статус
+  const statusEl = document.getElementById('node-status');
+  const ev = nodeItem.custom && nodeItem.custom.evidence ? nodeItem.custom.evidence : 'unknown';
+  if(ev === 'verified'){
+    statusEl.innerHTML = '<span class="status-verified">verified</span>';
+  } else if(ev === 'alleged' || ev === 'partial'){
+    statusEl.innerHTML = '<span class="status-alleged">' + ev + '</span>';
+  } else {
+    statusEl.innerHTML = '<span style="color:var(--muted)">unknown</span>';
+  }
+
+  // ids
+  const ids = [];
+  if(nodeItem.custom.inn) ids.push('INN: '+nodeItem.custom.inn);
+  if(nodeItem.custom.ogrn) ids.push('OGRN: '+nodeItem.custom.ogrn);
+  if(nodeItem.custom.edrpou) ids.push('ЄДРПОУ: '+nodeItem.custom.edrpou);
+  if(nodeItem.custom.ogrnip) ids.push('ОГРНИП: '+nodeItem.custom.ogrnip);
+  document.getElementById('node-ids').innerHTML = ids.length ? ids.join('<br>') : '<em>отсутствуют в публичной карточке</em>';
+
+  // role, notes, sources
+  document.getElementById('node-role').innerText = nodeItem.custom.role || '-';
+  document.getElementById('node-sources').innerHTML = nodeItem.custom.sources || nodeItem.custom.notes || '<em>нет данных</em>';
+  document.getElementById('node-actions').innerHTML = (nodeItem.custom.evidence === 'alleged')
+    ? '<ul><li>Запросить: выписку ЕГРЮЛ/ЕГРИП (для юрлиц)</li><li>Запросить: экспорт аккаунтов (через следствие)</li><li>Экспертиза: аудио / RF / банковский трекинг</li></ul>'
+    : '<ul><li>Выписка: сверить дату регистрации и учредителей</li><li>Для подтверждённого узла: запросить выписку ФНС, банковские связи при необходимости</li></ul>';
+
+  // кнопки
+  document.getElementById('btn-copy-json').onclick = function(){
+    const json = JSON.stringify(nodeItem, null, 2);
+    navigator.clipboard.writeText(json).then(()=> alert('JSON узла скопирован в буфер обмена'));
+  };
+  document.getElementById('btn-show-connections').onclick = function(){
+    // выделяем соседние узлы и ребра
+    const connectedNodes = network.getConnectedNodes(nodeItem.id);
+    network.selectNodes([nodeItem.id, ...connectedNodes], false);
+  };
+}
+
+function hideNodeCard(){
+  card.style.display='none';
+  cardEmpty.style.display='block';
+}
+
+// ------------------------
+// 8) Полезные helper-функции (расширения)
+// Сейчас оставлены базовые; можно добавить экспорт в CSV, фильтры и т.д.
+// ------------------------
+window.exportJSON = function(){
+  const out = {
+    nodes: nodes.get(),
+    edges: edges.get()
+  };
+  const blob = new Blob([JSON.stringify(out,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='graph_export.json'; a.click();
+};
+
+// ------------------------
+// 9) Примечание по использованию и дальнейшей работе
+// - Для загрузки новых данных: изменить nodesData и edgesData вверху.
+// - Для вывода timeline: можно добавить поле meta.dateAdded и динамически показывать узлы.
+// - Для экспорта: используйте window.exportJSON().
+// - Все поля meta содержат 'evidence' status: 'verified' | 'partial' | 'alleged'.
+// ------------------------
+
+</script>
+</body>
+</html>
