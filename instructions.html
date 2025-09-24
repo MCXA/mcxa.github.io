@@ -1,0 +1,169 @@
+
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Инструкция: Разметка изображений растений — все части и стадии роста с учётом условий (Мобильная версия)</title>
+  <style>
+    /* Базовые: системные шрифты для лучшей читаемости на мобилке */
+    :root{--bg:#f7fafc;--card:#ffffff;--muted:#6b7280;--accent:#0679d8;--accent-2:#10b981}
+    html,body{height:100%;margin:0}
+    body{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, system-ui;line-height:1.55;color:#0b1220;background:var(--bg);padding:16px}
+    header{max-width:1000px;margin:0 auto 12px}
+    .container{max-width:1000px;margin:0 auto;background:var(--card);border-radius:12px;padding:20px;box-shadow:0 6px 18px rgba(11,18,32,0.06);overflow:auto}
+    h1{font-size:20px;margin:0 0 6px}
+    h2{font-size:18px;margin-top:18px}
+    h3{font-size:16px;margin-top:14px}
+    p{margin:8px 0;font-size:15px}
+    pre{background:#0b122020;padding:12px;border-radius:8px;overflow:auto;font-size:13px}
+    code{background:#eef2f7;padding:2px 6px;border-radius:6px}
+    ul{margin:8px 0 8px 20px;padding:0}
+    .example{border-left:4px solid #67b3ff;background:#f0f8ff;padding:10px;border-radius:8px;margin:10px 0;font-size:14px}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .badge{display:inline-block;background:#eef2f7;color:#0b5faa;padding:6px 10px;border-radius:999px;font-size:12px}
+    .meta-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
+    .meta-table th,.meta-table td{border:1px solid #eef2f5;padding:8px;text-align:left}
+    .toc{background:#fffbe6;padding:12px;border-radius:8px;border:1px solid #f3e5bf;font-size:14px}
+    .collapsible{cursor:pointer;padding:10px;border-radius:8px;background:#f5f7fa;border:1px solid #e6eef8;font-size:15px}
+    .note{font-size:13px;color:var(--muted)}
+    .download{display:inline-block;padding:10px 14px;background:var(--accent-2);color:#fff;border-radius:10px;text-decoration:none}
+    footer{font-size:13px;color:#6b7280;margin-top:18px}
+
+    /* Accessibility / touch targets */
+    a, button {touch-action:manipulation}
+    .collapsible{min-height:44px;display:flex;align-items:center}
+
+    /* Mobile-first adjustments */
+    @media (max-width:900px){
+      .grid{grid-template-columns:1fr}
+      .container{padding:16px;border-radius:10px}
+      h1{font-size:18px}
+      h2{font-size:16px}
+      h3{font-size:15px}
+      .meta-table th,.meta-table td{font-size:13px;padding:6px}
+      pre{font-size:12px}
+      .toc{font-size:13px}
+      .download{width:100%;text-align:center;padding:12px}
+    }
+
+    /* Small displays: larger spacing for comfortable reading */
+    @media (max-width:480px){
+      body{padding:12px}
+      .container{padding:14px}
+      h1{font-size:17px}
+      p, li{font-size:15px}
+      .collapsible{padding:12px}
+      pre{font-size:11px}
+    }
+
+    /* High-contrast mode support */
+    @media (prefers-contrast: more){
+      body{background:#fff}
+      .container{box-shadow:none}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Инструкция: разметка изображений растений</h1>
+    <p class="note">Для обучения ИИ</p>
+  </header>
+
+  <main class="container" role="main">
+
+    <center>
+<img src="https://mcxa.github.io/img/images1.png" />
+    </center>
+    
+    <section class="toc" aria-label="Содержание">
+      <strong>Содержание</strong>
+      <ol>
+        <li>Краткое описание и цель</li>
+        <li>Обязательные метаданные</li>
+        <li>Таксономия</li>
+        <li>Правила разметки</li>
+        <li>Условия выращивания</li>
+        <li>Шаблоны экспорта</li>
+        <li>Спорные случаи</li>
+        <li>Контроль качества</li>
+        <li>Пошаговая инструкция для аннотатора</li>
+        <li>Шаблоны скриптов</li>
+      </ol>
+    </section>
+
+    <h2 id="goal">1. Краткое описание и цель</h2>
+    <p>Цель: собрать воспроизводимые аннотации растений, покрывающие <strong>все части</strong> (корень, стебель, лист, бутон, цветок, плод, семена, повреждения) и <strong>все стадии роста</strong>. Важный контекст — условия выращивания (система питания, спектр освещения), которые включаются в метаданные и учитываются при разметке.</p>
+
+    <h2 id="metadata">2. Обязательные метаданные для каждого изображения</h2>
+    <p>Каждое изображение обязательно снабжать метаданными (примеры ниже). На мобильном устройстве удобно использовать JSON-форму в текстовом редакторе или заметках.</p>
+    <table class="meta-table" role="table">
+      <thead><tr><th>Поле</th><th>Описание</th></tr></thead>
+      <tbody>
+        <tr><td><code>image_id</code></td><td>Уникальный идентификатор</td></tr>
+        <tr><td><code>acquisition_datetime</code></td><td>Время съёмки (ISO 8601)</td></tr>
+        <tr><td><code>camera_id</code></td><td>ИД камеры</td></tr>
+        <tr><td><code>imaging_mode</code></td><td>RGB / multispectral / hyperspectral</td></tr>
+        <tr><td><code>spectral_profile</code></td><td>Список каналов и относительные значения</td></tr>
+        <tr><td><code>lighting_description</code></td><td>Тип ламп, PAR, R:FR, blue_frac</td></tr>
+        <tr><td><code>nutrient_system</code></td><td>soil / hydroponics / aeroponics + параметры</td></tr>
+        <tr><td><code>growth_stage</code></td><td>seedling / vegetative / flowering / fruiting / senescence</td></tr>
+      </tbody>
+    </table>
+
+    <div class="example">Подсказка: на смартфоне удобно сначала заполнить метаданные в Notes (или в Google Forms), затем скопировать JSON в поле metadata при экспорте аннотации.</div>
+
+    <h2 id="taxonomy">3. Таксономия: категории и атрибуты</h2>
+    <p>Рекомендуемая базовая таксономия (адаптируйте под вид):</p>
+    <ul>
+      <li><code>leaf</code>, <code>stem</code>, <code>flower</code>, <code>fruit</code>, <code>bud</code>, <code>root</code>, <code>disease_spot</code></li>
+    </ul>
+    <p>Атрибуты: <code>growth_stage, health_status, occluded, visibility, age_days</code>.</p>
+
+    <h2 id="rules">4. Правила разметки (интерактивно и кратко)</h2>
+    <p>Выделяем объекты минимальным bbox; для сложных контуров используем polygon/mask. Обязательно указывать <code>occluded=true</code> при перекрытии &gt;30%.</p>
+
+    <h3>Как поступать в мобильном интерфейсе</h3>
+    <ol>
+      <li>Увеличьте изображение пальцами, чтобы точно поставить точки bbox/полигон;</li>
+      <li>Используйте маску для пятен болезней — это даст точную сегментацию;</li>
+      <li>Заполняйте атрибуты после завершения рисования, чтобы не потерять фокус.</li>
+    </ol>
+
+    <h2 id="conditions">5. Условия выращивания — что важно учитывать</h2>
+    <p>Записывайте системные параметры: <code>lighting.system</code>, <code>lighting.metrics</code> (PAR, PPFD, R:FR), <code>nutrient.system</code> (EC, pH) — это поможет фильтровать данные по сценарию обучения.</p>
+
+    <h2 id="export">6. Экспорт: формат COCO + metadata</h2>
+    <p>Экспортируем COCO JSON и добавляем <code>images[].metadata</code> с полями lighting и nutrient_system. Это существенно упрощает downstream-фильтрацию.</p>
+
+    <h2 id="edgecases">7. Спорные случаи и быстрые правила</h2>
+    <ul>
+      <li>Частично видимые объекты: аннотировать если ≥25% видно.</li>
+      <li>Отражения и блики: не аннотировать как объект; пометить <code>notes: "specular_glare"</code>.</li>
+      <li>Цветовые сдвиги из-за LED: помечать <code>color_shift_due_to_light=true</code>.</li>
+    </ul>
+
+    <h2 id="qa">8. Контроль качества — кратко</h2>
+    <p>Используйте gold set (5–10% корпусa). На мобильном удобно просматривать gold-примеры в отдельной папке и сверять параметры.</p>
+
+    <h2 id="steps">9. Пошаговая инструкция для аннотатора (короткая, для мобильного)</h2>
+    <ol>
+      <li>Откройте задачу в приложении / Label Studio мобильный браузер.</li>
+      <li>Проверьте metadata (lighting, nutrient_system, growth_stage).</li>
+      <li>Увеличьте изображение и нарисуйте bbox или polygon.</li>
+      <li>Заполните атрибуты: growth_stage, occluded, health_status.</li>
+      <li>Добавьте комментарий при сомнении и пометьте <code>needs_expert_review</code>.</li>
+      <li>Сохраните и закройте задачу.</li>
+    </ol>
+
+    <h2 id="scripts_mobile">10. Шаблоны скриптов (короткие инструкции для локальной валидации)</h2>
+    <p>На телефоне можно запускать проверки через терминал на ноутбуке; сохраните JSON и выполните <code>python scripts/validate_annotations.py</code> на ПК. Скрипты и примеры сохранены в основном HTML-документе.</p>
+
+    <footer>
+      <p class="note">Обновление: документ адаптирован для мобильных устройств — лучшая читаемость, одна колонка, большие зоны касания. Хочете, добавлю кнопку "Скачать ZIP" с шаблонами скриптов и sample-spec прямо в документ (сгенерирую файлы и добавлю ссылку)?</p>
+    </footer>
+
+  </main>
+
+</body>
+</html>
