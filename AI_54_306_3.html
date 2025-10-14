@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИИ 54,306 - Авторазметка</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2e7d32;
+            --primary-dark: #1b5e20;
+            --secondary: #ff6f00;
+            --danger: #d32f2f;
+            --success: #388e3c;
+            --warning: #f57c00;
+            --background: #f5f7fa;
+            --card: #ffffff;
+            --text: #333333;
+            --text-light: #666666;
+            --border: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: var(--card);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .app-body {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        /* Основная рабочая область */
+        .workspace {
+            padding: 30px;
+            background: var(--background);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .upload-section {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        .upload-area {
+            border: 3px dashed var(--border);
+            border-radius: 12px;
+            padding: 50px 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: #f0fff4;
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background: #e8f5e9;
+            transform: scale(1.02);
+        }
+
+        .upload-placeholder {
+            color: var(--text-light);
+        }
+
+        .upload-placeholder .icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Галерея изображений */
+        .gallery-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .gallery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .gallery-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            overflow-y: auto;
+            padding: 5px;
+            max-height: 600px;
+        }
+
+        .image-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+
+        .image-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+
+        .image-card.selected {
+            border: 3px solid var(--primary);
+        }
+
+        .image-container {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            overflow: hidden;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-annotation-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .image-info {
+            padding: 10px;
+        }
+
+        .image-name {
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.9em;
+        }
+
+        .image-status {
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        .status-pending {
+            color: var(--warning);
+        }
+
+        .status-analyzed {
+            color: var(--success);
+        }
+
+        .status-error {
+            color: var(--danger);
+        }
+
+        .image-actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .image-card:hover .image-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .remove-btn {
+            background: var(--danger);
+            color: white;
+        }
+
+        .analyze-btn {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Панель управления */
+        .control-panel {
+            padding: 30px;
+            background: var(--card);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .action-buttons {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:not(:disabled):hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c62828;
+            transform: translateY(-2px);
+        }
+
+        /* Результаты */
+        .results-section {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .results-section h2 {
+            margin-bottom: 20px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .selected-image-container {
+            position: relative;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .selected-image-container img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .annotation-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .confidence-meter {
+            width: 100%;
+            height: 25px;
+            background: #f0f0f0;
+            border-radius: 12px;
+            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ffa726, #66bb6a);
+            width: 0%;
+            transition: width 1s ease;
+            border-radius: 12px;
+        }
+
+        .confidence-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: var(--text-light);
+        }
+
+        .detection-results {
+            margin: 20px 0;
+        }
+
+        .detection-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .detection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .detection-type {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .detection-confidence {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .detection-coordinates {
+            font-family: monospace;
+            background: #e9ecef;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            margin-top: 8px;
+        }
+
+        .export-options {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .export-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .export-all-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f7ff;
+            border-radius: 10px;
+            border: 1px solid #b3d9ff;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #2e7d32;
+            transform: translateY(-2px);
+        }
+
+        /* Статус системы */
+        .system-status {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .status-value {
+            font-weight: bold;
+        }
+
+        .status-good {
+            color: var(--success);
+        }
+
+        .status-loading {
+            color: var(--warning);
+        }
+
+        /* Загрузка */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Всплывающие уведомления */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+        }
+
+        .toast {
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+            transition: opacity 0.3s, transform 0.3s;
+            transform: translateX(0);
+        }
+
+        .toast.hiding {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+
+        .toast-icon {
+            font-size: 1.5em;
+            flex-shrink: 0;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .toast-message {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
+
+        .toast-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+        }
+
+        .toast-error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #f44336;
+        }
+
+        .toast-warning {
+            background: #fff3e0;
+            color: #ef6c00;
+            border-left: 4px solid #ff9800;
+        }
+
+        .toast-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-left: 4px solid #2196f3;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Диалог подтверждения */
+        .confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+        }
+
+        .confirm-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .confirm-title {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: var(--text);
+        }
+
+        .confirm-message {
+            margin-bottom: 25px;
+            color: var(--text-light);
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .confirm-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .confirm-cancel {
+            background: #f5f5f5;
+            color: var(--text);
+        }
+
+        .confirm-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        .confirm-ok {
+            background: var(--danger);
+            color: white;
+        }
+
+        .confirm-ok:hover {
+            background: #c62828;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 1200px) {
+            .app-body {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-panel {
+                border-left: none;
+                border-top: 1px solid var(--border);
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2em;
+            }
+            
+            .workspace, .control-panel {
+                padding: 20px;
+            }
+            
+            .export-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .images-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+
+            .toast-container {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ИИ 54,306</h1>
+            <p>Авторазметка</p>
+        </header>
+
+        <div class="app-body">
+            <!-- Основная рабочая область -->
+            <div class="workspace">
+                <div class="upload-section">
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="fileInput" accept="image/*" multiple>
+                        <div class="upload-placeholder">
+                            <span class="icon">📁</span>
+                            <h3>Перетащите изображения сюда</h3>
+                            <p>или кликните для выбора файлов</p>
+                            <small>Поддерживаются: JPG, PNG, WebP (макс. 10MB)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gallery-section">
+                    <div class="gallery-header">
+                        <h3>Загруженные изображения</h3>
+                        <span id="imageCount">0 изображений</span>
+                    </div>
+                    
+                    <div class="gallery-controls">
+                        <button class="btn btn-primary" id="analyzeAllBtn">
+                            <span>🔍</span> Анализировать все
+                        </button>
+                        <button class="btn btn-secondary" id="clearAllBtn">
+                            <span>🗑️</span> Очистить все
+                        </button>
+                    </div>
+                    
+                    <div class="images-grid" id="imagesGrid">
+                        <!-- Изображения будут добавляться здесь -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Панель управления -->
+            <div class="control-panel">
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="analyzeSelectedBtn" disabled>
+                        <span>🔍</span> Анализировать выбранное
+                    </button>
+                    <button class="btn btn-secondary" id="batchProcessBtn">
+                        <span>📚</span> Пакетная обработка
+                    </button>
+                </div>
+
+                <div class="results-section" id="resultsSection">
+                    <h2>📊 Результаты анализа</h2>
+                    
+                    <div id="noSelectionMessage" style="text-align: center; padding: 40px 20px; color: var(--text-light);">
+                        <div style="font-size: 4em; margin-bottom: 20px;">🔍</div>
+                        <h3>Выберите изображение для просмотра результатов</h3>
+                        <p>Результаты анализа появятся здесь после выбора изображения из галереи</p>
+                    </div>
+                    
+                    <div id="selectedImageResults" style="display: none;">
+                        <div class="selected-image-container">
+                            <img id="selectedImagePreview" alt="Выбранное изображение">
+                            <canvas id="annotationCanvas" class="annotation-canvas"></canvas>
+                        </div>
+                        
+                        <div class="confidence-meter">
+                            <div class="confidence-fill" id="confidenceFill"></div>
+                        </div>
+                        <div class="confidence-labels">
+                            <span>Низкая</span>
+                            <span>Средняя</span>
+                            <span>Высокая</span>
+                        </div>
+
+                        <div class="detection-results" id="detectionResults">
+                            <!-- Результаты будут добавляться здесь -->
+                        </div>
+
+                        <div class="statistics">
+                            <div class="stat-item">
+                                <strong>Обнаружено паутинных клещей:</strong> 
+                                <span id="miteCount">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <strong>Обнаружено заболеваний:</strong> 
+                                <span id="diseaseCount">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <strong>Средняя уверенность:</strong> 
+                                <span id="avgConfidence">0%</span>
+                            </div>
+                        </div>
+
+                        <div class="export-options">
+                            <h3>📤 Экспорт разметки</h3>
+                            <div class="export-buttons">
+                                <button class="btn btn-outline" id="exportJSONBtn">
+                                    JSON разметка
+                                </button>
+                                <button class="btn btn-outline" id="exportImageBtn">
+                                    Изображение с разметкой
+                                </button>
+                            </div>
+                            
+                            <div class="export-all-section">
+                                <h4>📦 Пакетный экспорт всех изображений</h4>
+                                <p style="margin: 10px 0; font-size: 0.9em; color: var(--text-light);">
+                                    Скачайте все проанализированные изображения в одном ZIP-архиве
+                                </p>
+                                <button class="btn btn-success" id="exportAllBtn" style="width: 100%;">
+                                    <span>📥</span> Скачать все изображения
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="system-status">
+                    <h4>🖥️ Статус системы</h4>
+                    <div class="status-item">
+                        <span>Модель обнаружения:</span>
+                        <span class="status-value status-loading" id="modelStatus">Загрузка...</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Обработано изображений:</span>
+                        <span class="status-value" id="processedCount">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Точность системы:</span>
+                        <span class="status-value" id="systemAccuracy">~92%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Оверлей загрузки -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h3 id="loadingTitle">Анализируем изображения...</h3>
+            <p id="loadingMessage">Обнаружение паутинных клещей и заболеваний</p>
+            <div class="progress" style="margin-top: 20px;">
+                <div style="background: #e0e0e0; height: 6px; border-radius: 3px;">
+                    <div id="progressBar" style="background: var(--primary); height: 100%; width: 0%; border-radius: 3px; transition: width 0.3s;"></div>
+                </div>
+            </div>
+            <div id="batchProgress" style="margin-top: 10px; font-size: 0.9em;"></div>
+        </div>
+    </div>
+
+    <!-- Контейнер для всплывающих уведомлений -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Диалог подтверждения -->
+    <div class="confirm-dialog" id="confirmDialog">
+        <div class="confirm-content">
+            <div class="confirm-title" id="confirmTitle">Подтверждение действия</div>
+            <div class="confirm-message" id="confirmMessage">Вы уверены, что хотите выполнить это действие?</div>
+            <div class="confirm-buttons">
+                <button class="confirm-btn confirm-cancel" id="confirmCancel">Отмена</button>
+                <button class="confirm-btn confirm-ok" id="confirmOk">Продолжить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PlantDiseaseDetector {
+            constructor() {
+                this.model = null;
+                this.isModelLoaded = false;
+                this.processedCount = 0;
+                this.images = new Map(); // Храним данные о каждом изображении
+                this.selectedImageId = null;
+                
+                this.initializeEventListeners();
+                this.loadModel();
+            }
+
+            // Инициализация обработчиков событий
+            initializeEventListeners() {
+                const uploadArea = document.getElementById('uploadArea');
+                const fileInput = document.getElementById('fileInput');
+                const analyzeAllBtn = document.getElementById('analyzeAllBtn');
+                const analyzeSelectedBtn = document.getElementById('analyzeSelectedBtn');
+                const clearAllBtn = document.getElementById('clearAllBtn');
+                const batchProcessBtn = document.getElementById('batchProcessBtn');
+                const exportJSONBtn = document.getElementById('exportJSONBtn');
+                const exportImageBtn = document.getElementById('exportImageBtn');
+                const exportAllBtn = document.getElementById('exportAllBtn');
+                const confirmCancel = document.getElementById('confirmCancel');
+                const confirmOk = document.getElementById('confirmOk');
+
+                // Обработка drag & drop
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragover');
+                });
+
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.handleImageUpload(files);
+                    }
+                });
+
+                // Клик по области загрузки
+                uploadArea.addEventListener('click', () => fileInput.click());
+
+                // Выбор файлов
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.handleImageUpload(e.target.files);
+                    }
+                });
+
+                // Анализ всех изображений
+                analyzeAllBtn.addEventListener('click', () => this.analyzeAllImages());
+
+                // Анализ выбранного изображения
+                analyzeSelectedBtn.addEventListener('click', () => this.analyzeSelectedImage());
+
+                // Очистка всех изображений
+                clearAllBtn.addEventListener('click', () => this.confirmClearAll());
+
+                // Пакетная обработка
+                batchProcessBtn.addEventListener('click', () => this.batchProcess());
+
+                // Экспорт
+                exportJSONBtn.addEventListener('click', () => this.exportJSON());
+                exportImageBtn.addEventListener('click', () => this.exportImage());
+                exportAllBtn.addEventListener('click', () => this.exportAllImages());
+
+                // Подтверждение действий
+                confirmCancel.addEventListener('click', () => this.hideConfirm());
+                confirmOk.addEventListener('click', () => this.confirmAction());
+            }
+
+            // Загрузка модели
+            async loadModel() {
+                try {
+                    this.showLoading('Загрузка модели обнаружения...');
+                    
+                    // В реальном приложении здесь будет загрузка настоящей модели
+                    // this.model = await tf.loadGraphModel('model/model.json');
+                    
+                    // Имитация загрузки модели для демонстрации
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    this.isModelLoaded = true;
+                    document.getElementById('modelStatus').textContent = 'Готов';
+                    document.getElementById('modelStatus').className = 'status-value status-good';
+                    
+                    this.hideLoading();
+                    this.showToast('Модель обнаружения успешно загружена', 'success');
+                    console.log('Модель обнаружения паутинных клещей и заболеваний загружена');
+                    
+                } catch (error) {
+                    console.error('Ошибка загрузки модели:', error);
+                    document.getElementById('modelStatus').textContent = 'Ошибка';
+                    this.hideLoading();
+                    this.showToast('Ошибка загрузки модели обнаружения', 'error');
+                }
+            }
+
+            // Обработка загрузки изображений
+            handleImageUpload(files) {
+                const validFiles = Array.from(files).filter(file => {
+                    if (!file.type.match('image.*')) {
+                        this.showToast(`Файл "${file.name}" не является изображением`, 'warning');
+                        return false;
+                    }
+                    
+                    if (file.size > 10 * 1024 * 1024) {
+                        this.showToast(`Файл "${file.name}" превышает размер 10MB и не будет загружен`, 'warning');
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                if (validFiles.length === 0) {
+                    return;
+                }
+                
+                validFiles.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                        const imageData = {
+                            id: imageId,
+                            file: file,
+                            url: e.target.result,
+                            name: file.name,
+                            detections: [],
+                            analyzed: false,
+                            analyzing: false,
+                            status: 'pending'
+                        };
+                        
+                        this.images.set(imageId, imageData);
+                        this.addImageToGallery(imageData);
+                        this.updateImageCount();
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                if (validFiles.length > 0) {
+                    this.showToast(`Загружено ${validFiles.length} изображений`, 'success');
+                }
+            }
+
+            // Добавление изображения в галерею
+            addImageToGallery(imageData) {
+                const imagesGrid = document.getElementById('imagesGrid');
+                
+                const imageCard = document.createElement('div');
+                imageCard.className = 'image-card';
+                imageCard.dataset.id = imageData.id;
+                
+                imageCard.innerHTML = `
+                    <div class="image-container">
+                        <img src="${imageData.url}" alt="${imageData.name}">
+                        <canvas class="image-annotation-canvas" id="canvas-${imageData.id}"></canvas>
+                    </div>
+                    <div class="image-actions">
+                        <button class="action-btn analyze-btn" title="Анализировать">🔍</button>
+                        <button class="action-btn remove-btn" title="Удалить">✕</button>
+                    </div>
+                    <div class="image-info">
+                        <div class="image-name">${imageData.name}</div>
+                        <div class="image-status status-${imageData.status}">${this.getStatusText(imageData.status)}</div>
+                    </div>
+                `;
+                
+                // Обработчики событий для карточки
+                imageCard.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('action-btn')) {
+                        this.selectImage(imageData.id);
+                    }
+                });
+                
+                // Обработчики для кнопок действий
+                const analyzeBtn = imageCard.querySelector('.analyze-btn');
+                analyzeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.analyzeSingleImage(imageData.id);
+                });
+                
+                const removeBtn = imageCard.querySelector('.remove-btn');
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.removeImage(imageData.id);
+                });
+                
+                imagesGrid.appendChild(imageCard);
+            }
+
+            // Выбор изображения
+            selectImage(imageId) {
+                // Снимаем выделение с предыдущей карточки
+                const previouslySelected = document.querySelector('.image-card.selected');
+                if (previouslySelected) {
+                    previouslySelected.classList.remove('selected');
+                }
+                
+                // Выделяем новую карточку
+                const imageCard = document.querySelector(`.image-card[data-id="${imageId}"]`);
+                if (imageCard) {
+                    imageCard.classList.add('selected');
+                }
+                
+                this.selectedImageId = imageId;
+                document.getElementById('analyzeSelectedBtn').disabled = false;
+                this.displaySelectedImageResults();
+            }
+
+            // Отображение результатов выбранного изображения
+            displaySelectedImageResults() {
+                const imageData = this.images.get(this.selectedImageId);
+                if (!imageData) return;
+                
+                document.getElementById('noSelectionMessage').style.display = 'none';
+                document.getElementById('selectedImageResults').style.display = 'block';
+                
+                // Показываем превью
+                const previewImg = document.getElementById('selectedImagePreview');
+                previewImg.src = imageData.url;
+                
+                // Очищаем canvas аннотаций
+                const annotationCanvas = document.getElementById('annotationCanvas');
+                const ctx = annotationCanvas.getContext('2d');
+                ctx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
+                
+                // Показываем результаты, если они есть
+                if (imageData.analyzed) {
+                    this.displayImageResults(imageData);
+                    // Отрисовываем аннотации на основном изображении
+                    this.drawAnnotations(imageData, annotationCanvas, previewImg);
+                } else {
+                    document.getElementById('detectionResults').innerHTML = '<p>Изображение еще не проанализировано</p>';
+                    document.getElementById('confidenceFill').style.width = '0%';
+                    document.getElementById('miteCount').textContent = '0';
+                    document.getElementById('diseaseCount').textContent = '0';
+                    document.getElementById('avgConfidence').textContent = '0%';
+                }
+            }
+
+            // Отображение результатов для конкретного изображения
+            displayImageResults(imageData) {
+                const detectionResults = document.getElementById('detectionResults');
+                const miteCount = document.getElementById('miteCount');
+                const diseaseCount = document.getElementById('diseaseCount');
+                const avgConfidence = document.getElementById('avgConfidence');
+                const confidenceFill = document.getElementById('confidenceFill');
+                
+                // Расчет средней уверенности
+                const avgConf = imageData.detections.length > 0 
+                    ? imageData.detections.reduce((sum, det) => sum + det.confidence, 0) / imageData.detections.length
+                    : 0;
+                
+                // Подсчет клещей и заболеваний
+                const mites = imageData.detections.filter(d => d.type === 'spider_mite').length;
+                const diseases = imageData.detections.filter(d => d.type !== 'spider_mite').length;
+                
+                // Обновление интерфейса
+                confidenceFill.style.width = `${avgConf * 100}%`;
+                miteCount.textContent = mites;
+                diseaseCount.textContent = diseases;
+                avgConfidence.textContent = `${(avgConf * 100).toFixed(1)}%`;
+                
+                // Отображение обнаружений
+                if (imageData.detections.length === 0) {
+                    detectionResults.innerHTML = '<p>Паутинные клещи и заболевания не обнаружены</p>';
+                } else {
+                    detectionResults.innerHTML = imageData.detections.map(det => `
+                        <div class="detection-item">
+                            <div class="detection-header">
+                                <span class="detection-type">${this.getDetectionTypeText(det.type)} #${det.id}</span>
+                                <span class="detection-confidence">${(det.confidence * 100).toFixed(1)}%</span>
+                            </div>
+                            <div>Серьезность: <strong>${this.getSeverityText(det.severity)}</strong></div>
+                            <div class="detection-coordinates">
+                                Координаты: x=${det.bbox.x.toFixed(2)}, y=${det.bbox.y.toFixed(2)}, 
+                                w=${det.bbox.width.toFixed(2)}, h=${det.bbox.height.toFixed(2)}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // Отрисовка аннотаций на изображении
+            drawAnnotations(imageData, canvas, imageElement) {
+                // Ждем загрузки изображения
+                imageElement.onload = () => {
+                    // Устанавливаем размеры canvas как у изображения
+                    canvas.width = imageElement.clientWidth;
+                    canvas.height = imageElement.clientHeight;
+                    
+                    const ctx = canvas.getContext('2d');
+                    
+                    imageData.detections.forEach(det => {
+                        const bbox = det.bbox;
+                        const x = bbox.x * canvas.width;
+                        const y = bbox.y * canvas.height;
+                        const width = bbox.width * canvas.width;
+                        const height = bbox.height * canvas.height;
+                        
+                        // Цвет в зависимости от типа обнаружения
+                        const color = this.getDetectionColor(det.type);
+                        
+                        // Рисуем bounding box
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(x, y, width, height);
+                        
+                        // Рисуем фон для текста
+                        ctx.fillStyle = color;
+                        const text = `${this.getDetectionTypeText(det.type)} ${(det.confidence * 100).toFixed(1)}%`;
+                        const textWidth = ctx.measureText(text).width;
+                        ctx.fillRect(x, y - 25, textWidth + 10, 25);
+                        
+                        // Рисуем текст
+                        ctx.fillStyle = 'white';
+                        ctx.font = '14px Arial';
+                        ctx.fillText(text, x + 5, y - 8);
+                        
+                        // Рисуем точки в углах для лучшей видимости
+                        this.drawCornerPoints(ctx, x, y, width, height, color);
+                    });
+                    
+                    // Также отрисовываем аннотации на миниатюре в галерее
+                    this.drawThumbnailAnnotations(imageData);
+                };
+                
+                // Если изображение уже загружено, сразу рисуем
+                if (imageElement.complete) {
+                    imageElement.onload();
+                }
+            }
+            
+            // Отрисовка угловых точек для лучшей видимости bounding box
+            drawCornerPoints(ctx, x, y, width, height, color) {
+                const cornerSize = 8;
+                ctx.fillStyle = color;
+                
+                // Левый верхний
+                ctx.fillRect(x - cornerSize/2, y - cornerSize/2, cornerSize, cornerSize);
+                // Правый верхний
+                ctx.fillRect(x + width - cornerSize/2, y - cornerSize/2, cornerSize, cornerSize);
+                // Левый нижний
+                ctx.fillRect(x - cornerSize/2, y + height - cornerSize/2, cornerSize, cornerSize);
+                // Правый нижний
+                ctx.fillRect(x + width - cornerSize/2, y + height - cornerSize/2, cornerSize, cornerSize);
+            }
+            
+            // Отрисовка аннотаций на миниатюре в галерее
+            drawThumbnailAnnotations(imageData) {
+                const thumbnailCanvas = document.getElementById(`canvas-${imageData.id}`);
+                if (!thumbnailCanvas) return;
+                
+                const container = thumbnailCanvas.parentElement;
+                const img = container.querySelector('img');
+                
+                // Ждем загрузки изображения
+                img.onload = () => {
+                    // Устанавливаем размеры canvas как у изображения
+                    thumbnailCanvas.width = container.clientWidth;
+                    thumbnailCanvas.height = container.clientHeight;
+                    
+                    const ctx = thumbnailCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
+                    
+                    imageData.detections.forEach(det => {
+                        const bbox = det.bbox;
+                        const x = bbox.x * thumbnailCanvas.width;
+                        const y = bbox.y * thumbnailCanvas.height;
+                        const width = bbox.width * thumbnailCanvas.width;
+                        const height = bbox.height * thumbnailCanvas.height;
+                        
+                        // Цвет в зависимости от типа обнаружения
+                        const color = this.getDetectionColor(det.type);
+                        
+                        // Рисуем bounding box
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(x, y, width, height);
+                        
+                        // Рисуем фон для текста (только для миниатюр с достаточным размером)
+                        if (thumbnailCanvas.width > 150) {
+                            ctx.fillStyle = color;
+                            const text = `${(det.confidence * 100).toFixed(0)}%`;
+                            ctx.fillRect(x, y - 15, 25, 15);
+                            
+                            // Рисуем текст
+                            ctx.fillStyle = 'white';
+                            ctx.font = '10px Arial';
+                            ctx.fillText(text, x + 2, y - 3);
+                        }
+                    });
+                };
+                
+                // Если изображение уже загружено, сразу рисуем
+                if (img.complete) {
+                    img.onload();
+                }
+            }
+
+            // Анализ одного изображения
+            async analyzeSingleImage(imageId) {
+                if (!this.isModelLoaded) {
+                    this.showToast('Модель еще загружается. Пожалуйста, подождите.', 'warning');
+                    return;
+                }
+
+                const imageData = this.images.get(imageId);
+                if (!imageData || imageData.analyzing) return;
+
+                imageData.analyzing = true;
+                this.updateImageStatus(imageId, 'analyzing');
+
+                this.showLoading(`Анализ изображения: ${imageData.name}`);
+                this.updateProgress(30);
+
+                try {
+                    // Имитация работы модели
+                    await this.simulateDetection(imageId);
+                    
+                    this.updateProgress(100);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    imageData.analyzed = true;
+                    imageData.analyzing = false;
+                    this.updateImageStatus(imageId, 'analyzed');
+                    
+                    this.processedCount++;
+                    document.getElementById('processedCount').textContent = this.processedCount;
+                    
+                    // Если это выбранное изображение, обновляем результаты
+                    if (this.selectedImageId === imageId) {
+                        this.displayImageResults(imageData);
+                        const previewImg = document.getElementById('selectedImagePreview');
+                        const annotationCanvas = document.getElementById('annotationCanvas');
+                        this.drawAnnotations(imageData, annotationCanvas, previewImg);
+                    }
+                    
+                    this.showToast(`Изображение "${imageData.name}" успешно проанализировано`, 'success');
+                    
+                } catch (error) {
+                    console.error('Ошибка анализа:', error);
+                    imageData.analyzing = false;
+                    this.updateImageStatus(imageId, 'error');
+                    this.showToast(`Произошла ошибка при анализе изображения ${imageData.name}`, 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            // Анализ выбранного изображения
+            analyzeSelectedImage() {
+                if (this.selectedImageId) {
+                    this.analyzeSingleImage(this.selectedImageId);
+                }
+            }
+
+            // Анализ всех изображений
+            async analyzeAllImages() {
+                if (this.images.size === 0) {
+                    this.showToast('Нет изображений для анализа', 'warning');
+                    return;
+                }
+
+                if (!this.isModelLoaded) {
+                    this.showToast('Модель еще загружается. Пожалуйста, подождите.', 'warning');
+                    return;
+                }
+
+                this.showLoading('Пакетный анализ изображений...');
+                
+                const imageIds = Array.from(this.images.keys());
+                const total = imageIds.length;
+                let completed = 0;
+
+                for (const imageId of imageIds) {
+                    const imageData = this.images.get(imageId);
+                    if (imageData.analyzed || imageData.analyzing) {
+                        completed++;
+                        continue;
+                    }
+
+                    this.updateProgress((completed / total) * 100);
+                    document.getElementById('batchProgress').textContent = 
+                        `Обработано: ${completed} из ${total} изображений`;
+
+                    await this.analyzeSingleImage(imageId);
+                    completed++;
+                }
+
+                this.hideLoading();
+                this.showToast(`Анализ завершен! Обработано ${completed} изображений`, 'success');
+            }
+
+            // Имитация обнаружения (для демонстрации)
+            async simulateDetection(imageId) {
+                return new Promise(resolve => {
+                    // Имитация прогресса анализа
+                    const stages = [
+                        {progress: 40, message: 'Анализ текстуры листа...'},
+                        {progress: 60, message: 'Поиск характерных признаков...'},
+                        {progress: 80, message: 'Классификация объектов...'}
+                    ];
+                    
+                    stages.forEach((stage, index) => {
+                        setTimeout(() => {
+                            this.updateProgress(stage.progress);
+                            document.getElementById('loadingMessage').textContent = stage.message;
+                        }, (index + 1) * 800);
+                    });
+                    
+                    setTimeout(() => {
+                        // Генерация демо-результатов
+                        this.generateDemoDetections(imageId);
+                        resolve();
+                    }, 4000);
+                });
+            }
+
+            // Генерация демонстрационных обнаружений (только паутинные клещи и заболевания)
+            generateDemoDetections(imageId) {
+                const imageData = this.images.get(imageId);
+                if (!imageData) return;
+                
+                const detections = [];
+                // Увеличим вероятность обнаружения для демонстрации
+                const detectionCount = Math.floor(Math.random() * 6) + 2; // 2-7 обнаружений
+                
+                // Типы обнаружений - только паутинные клещи и заболевания растений
+                const detectionTypes = [
+                    {type: 'spider_mite', name: 'Паутинный клещ'},
+                    {type: 'powdery_mildew', name: 'Мучнистая роса'},
+                    {type: 'leaf_spot', name: 'Пятнистость листьев'},
+                    {type: 'rust', name: 'Ржавчина'},
+                    {type: 'late_blight', name: 'Фитофтороз'},
+                    {type: 'black_spot', name: 'Черная пятнистость'}
+                ];
+                
+                for (let i = 0; i < detectionCount; i++) {
+                    const detectionType = detectionTypes[Math.floor(Math.random() * detectionTypes.length)];
+                    
+                    // Для паутинных клещей увеличим вероятность появления
+                    const type = Math.random() > 0.6 ? 'spider_mite' : detectionType.type;
+                    const name = type === 'spider_mite' ? 'Паутинный клещ' : detectionType.name;
+                    
+                    detections.push({
+                        id: i + 1,
+                        type: type,
+                        name: name,
+                        confidence: Math.random() * 0.4 + 0.6, // 0.6-1.0
+                        bbox: {
+                            x: Math.random() * 0.7,
+                            y: Math.random() * 0.7,
+                            width: Math.random() * 0.2 + 0.1,
+                            height: Math.random() * 0.2 + 0.1
+                        },
+                        severity: Math.random() > 0.7 ? 'high' : Math.random() > 0.4 ? 'medium' : 'low'
+                    });
+                }
+                
+                imageData.detections = detections;
+            }
+
+            // Обновление статуса изображения в галерее
+            updateImageStatus(imageId, status) {
+                const imageCard = document.querySelector(`.image-card[data-id="${imageId}"]`);
+                if (!imageCard) return;
+                
+                const statusElement = imageCard.querySelector('.image-status');
+                const imageData = this.images.get(imageId);
+                
+                if (imageData) {
+                    imageData.status = status;
+                }
+                
+                statusElement.className = `image-status status-${status}`;
+                statusElement.textContent = this.getStatusText(status);
+            }
+
+            // Удаление изображения
+            removeImage(imageId) {
+                // Если удаляем выбранное изображение, сбрасываем выделение
+                if (this.selectedImageId === imageId) {
+                    this.selectedImageId = null;
+                    document.getElementById('analyzeSelectedBtn').disabled = true;
+                    document.getElementById('noSelectionMessage').style.display = 'block';
+                    document.getElementById('selectedImageResults').style.display = 'none';
+                }
+                
+                // Удаляем из DOM
+                const imageCard = document.querySelector(`.image-card[data-id="${imageId}"]`);
+                if (imageCard) {
+                    imageCard.remove();
+                }
+                
+                // Удаляем из хранилища
+                this.images.delete(imageId);
+                this.updateImageCount();
+                
+                this.showToast('Изображение удалено', 'info');
+            }
+
+            // Очистка всех изображений
+            clearAllImages() {
+                this.images.clear();
+                document.getElementById('imagesGrid').innerHTML = '';
+                this.selectedImageId = null;
+                document.getElementById('analyzeSelectedBtn').disabled = true;
+                document.getElementById('noSelectionMessage').style.display = 'block';
+                document.getElementById('selectedImageResults').style.display = 'none';
+                this.updateImageCount();
+                
+                this.showToast('Все изображения удалены', 'info');
+            }
+
+            // Подтверждение очистки всех изображений
+            confirmClearAll() {
+                if (this.images.size === 0) {
+                    this.showToast('Нет изображений для удаления', 'info');
+                    return;
+                }
+                
+                this.showConfirm(
+                    'Очистка всех изображений',
+                    `Вы уверены, что хотите удалить все ${this.images.size} изображений?`,
+                    () => this.clearAllImages()
+                );
+            }
+
+            // Обновление счетчика изображений
+            updateImageCount() {
+                const count = this.images.size;
+                document.getElementById('imageCount').textContent = 
+                    `${count} ${this.getPluralForm(count, ['изображение', 'изображения', 'изображений'])}`;
+            }
+
+            // Экспорт JSON для выбранного изображения
+            exportJSON() {
+                if (!this.selectedImageId) {
+                    this.showToast('Нет выбранного изображения для экспорта', 'warning');
+                    return;
+                }
+                
+                const imageData = this.images.get(this.selectedImageId);
+                if (!imageData || imageData.detections.length === 0) {
+                    this.showToast('Нет данных для экспорта', 'warning');
+                    return;
+                }
+                
+                const exportData = {
+                    image: imageData.name,
+                    timestamp: new Date().toISOString(),
+                    detections: imageData.detections,
+                    summary: {
+                        total_detections: imageData.detections.length,
+                        spider_mites: imageData.detections.filter(d => d.type === 'spider_mite').length,
+                        diseases: imageData.detections.filter(d => d.type !== 'spider_mite').length,
+                        average_confidence: imageData.detections.reduce((sum, det) => sum + det.confidence, 0) / imageData.detections.length
+                    }
+                };
+                
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `plant_analysis_${imageData.name}_${Date.now()}.json`;
+                link.click();
+                
+                this.showToast('JSON разметка успешно экспортирована', 'success');
+            }
+
+            // Экспорт изображения с разметкой
+            exportImage() {
+                if (!this.selectedImageId) {
+                    this.showToast('Нет выбранного изображения для экспорта', 'warning');
+                    return;
+                }
+                
+                const imageData = this.images.get(this.selectedImageId);
+                if (!imageData) {
+                    this.showToast('Нет данных изображения', 'warning');
+                    return;
+                }
+                
+                // Создаем временное изображение для отрисовки разметки
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Рисуем исходное изображение
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Рисуем разметку поверх
+                    imageData.detections.forEach(detection => {
+                        const bbox = detection.bbox;
+                        const x = bbox.x * img.width;
+                        const y = bbox.y * img.height;
+                        const width = bbox.width * img.width;
+                        const height = bbox.height * img.height;
+                        
+                        // Цвет в зависимости от типа обнаружения
+                        const color = this.getDetectionColor(detection.type);
+                        
+                        // Рисуем bounding box
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 5;
+                        ctx.strokeRect(x, y, width, height);
+                        
+                        // Рисуем фон для текста
+                        ctx.fillStyle = color;
+                        const text = `${detection.name} ${(detection.confidence * 100).toFixed(1)}%`;
+                        const textWidth = ctx.measureText(text).width;
+                        ctx.fillRect(x, y - 30, textWidth + 15, 30);
+                        
+                        // Рисуем текст
+                        ctx.fillStyle = 'white';
+                        ctx.font = 'bold 16px Arial';
+                        ctx.fillText(text, x + 5, y - 10);
+                        
+                        // Рисуем точки в углах
+                        this.drawCornerPoints(ctx, x, y, width, height, color);
+                    });
+                    
+                    // Создаем ссылку для скачивания
+                    const link = document.createElement('a');
+                    link.href = canvas.toDataURL('image/png');
+                    link.download = `plant_analysis_${imageData.name}_${Date.now()}.png`;
+                    link.click();
+                    
+                    this.showToast('Изображение с разметкой успешно экспортировано', 'success');
+                };
+                img.src = imageData.url;
+            }
+
+            // Экспорт всех изображений
+            async exportAllImages() {
+                const analyzedImages = Array.from(this.images.values()).filter(img => img.analyzed);
+                
+                if (analyzedImages.length === 0) {
+                    this.showToast('Нет проанализированных изображений для экспорта', 'warning');
+                    return;
+                }
+                
+                this.showLoading('Подготовка архива...', 'Создание ZIP архива со всеми изображениями');
+                
+                try {
+                    const zip = new JSZip();
+                    const imagesFolder = zip.folder("analyzed_images");
+                    const jsonData = {
+                        exportedAt: new Date().toISOString(),
+                        totalImages: analyzedImages.length,
+                        images: []
+                    };
+                    
+                    let processed = 0;
+                    
+                    for (const imageData of analyzedImages) {
+                        this.updateProgress((processed / analyzedImages.length) * 100);
+                        document.getElementById('batchProgress').textContent = 
+                            `Обрабатывается: ${imageData.name} (${processed + 1} из ${analyzedImages.length})`;
+                        
+                        // Создаем изображение с разметкой
+                        const imgBlob = await this.createAnnotatedImageBlob(imageData);
+                        
+                        // Добавляем изображение в архив
+                        imagesFolder.file(`analyzed_${imageData.name}`, imgBlob);
+                        
+                        // Добавляем информацию в JSON
+                        jsonData.images.push({
+                            image: imageData.name,
+                            detections: imageData.detections,
+                            summary: {
+                                total_detections: imageData.detections.length,
+                                spider_mites: imageData.detections.filter(d => d.type === 'spider_mite').length,
+                                diseases: imageData.detections.filter(d => d.type !== 'spider_mite').length,
+                                average_confidence: imageData.detections.reduce((sum, det) => sum + det.confidence, 0) / imageData.detections.length
+                            }
+                        });
+                        
+                        processed++;
+                    }
+                    
+                    // Добавляем JSON файл в архив
+                    zip.file("analysis_summary.json", JSON.stringify(jsonData, null, 2));
+                    
+                    // Генерируем и скачиваем архив
+                    const content = await zip.generateAsync({type: "blob"});
+                    saveAs(content, `plant_analysis_all_images_${Date.now()}.zip`);
+                    
+                    this.hideLoading();
+                    this.showToast(`Архив успешно создан! Содержит ${analyzedImages.length} изображений.`, 'success');
+                    
+                } catch (error) {
+                    console.error('Ошибка при создании архива:', error);
+                    this.showToast('Произошла ошибка при создании архива', 'error');
+                    this.hideLoading();
+                }
+            }
+            
+            // Создание изображения с аннотациями в виде Blob
+            createAnnotatedImageBlob(imageData) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Рисуем исходное изображение
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Рисуем разметку поверх
+                        imageData.detections.forEach(detection => {
+                            const bbox = detection.bbox;
+                            const x = bbox.x * img.width;
+                            const y = bbox.y * img.height;
+                            const width = bbox.width * img.width;
+                            const height = bbox.height * img.height;
+                            
+                            // Цвет в зависимости от типа обнаружения
+                            const color = this.getDetectionColor(detection.type);
+                            
+                            // Рисуем bounding box
+                            ctx.strokeStyle = color;
+                            ctx.lineWidth = 5;
+                            ctx.strokeRect(x, y, width, height);
+                            
+                            // Рисуем фон для текста
+                            ctx.fillStyle = color;
+                            const text = `${detection.name} ${(detection.confidence * 100).toFixed(1)}%`;
+                            const textWidth = ctx.measureText(text).width;
+                            ctx.fillRect(x, y - 30, textWidth + 15, 30);
+                            
+                            // Рисуем текст
+                            ctx.fillStyle = 'white';
+                            ctx.font = 'bold 16px Arial';
+                            ctx.fillText(text, x + 5, y - 10);
+                            
+                            // Рисуем точки в углах
+                            this.drawCornerPoints(ctx, x, y, width, height, color);
+                        });
+                        
+                        // Конвертируем canvas в blob
+                        canvas.toBlob(blob => {
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                reject(new Error('Не удалось создать изображение'));
+                            }
+                        }, 'image/png');
+                    };
+                    img.onerror = reject;
+                    img.src = imageData.url;
+                });
+            }
+
+            // Пакетная обработка
+            batchProcess() {
+                this.showToast('Расширенная функция пакетной обработки будет реализована в следующей версии', 'info');
+            }
+
+            // Всплывающие уведомления
+            showToast(message, type = 'info', duration = 5000) {
+                const toastContainer = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                
+                const icons = {
+                    success: '✅',
+                    error: '❌',
+                    warning: '⚠️',
+                    info: 'ℹ️'
+                };
+                
+                toast.innerHTML = `
+                    <span class="toast-icon">${icons[type] || icons.info}</span>
+                    <div class="toast-content">
+                        <div class="toast-message">${message}</div>
+                    </div>
+                    <button class="toast-close">✕</button>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                // Закрытие по клику на кнопку
+                const closeBtn = toast.querySelector('.toast-close');
+                closeBtn.addEventListener('click', () => {
+                    this.hideToast(toast);
+                });
+                
+                // Автоматическое закрытие
+                if (duration > 0) {
+                    setTimeout(() => {
+                        this.hideToast(toast);
+                    }, duration);
+                }
+                
+                return toast;
+            }
+            
+            hideToast(toast) {
+                toast.classList.add('hiding');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }
+
+            // Диалог подтверждения
+            showConfirm(title, message, callback) {
+                const dialog = document.getElementById('confirmDialog');
+                const titleEl = document.getElementById('confirmTitle');
+                const messageEl = document.getElementById('confirmMessage');
+                
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                
+                this.confirmCallback = callback;
+                dialog.style.display = 'flex';
+            }
+            
+            hideConfirm() {
+                const dialog = document.getElementById('confirmDialog');
+                dialog.style.display = 'none';
+                this.confirmCallback = null;
+            }
+            
+            confirmAction() {
+                if (this.confirmCallback) {
+                    this.confirmCallback();
+                }
+                this.hideConfirm();
+            }
+
+            // Вспомогательные методы
+            getStatusText(status) {
+                const texts = {
+                    'pending': 'Ожидает анализа',
+                    'analyzing': 'Анализируется...',
+                    'analyzed': 'Проанализировано',
+                    'error': 'Ошибка анализа'
+                };
+                return texts[status] || 'Неизвестно';
+            }
+
+            getDetectionTypeText(type) {
+                const texts = {
+                    'spider_mite': 'Паутинный клещ',
+                    'powdery_mildew': 'Мучнистая роса',
+                    'leaf_spot': 'Пятнистость листьев',
+                    'rust': 'Ржавчина',
+                    'late_blight': 'Фитофтороз',
+                    'black_spot': 'Черная пятнистость'
+                };
+                return texts[type] || 'Неизвестно';
+            }
+
+            getDetectionColor(type) {
+                const colors = {
+                    'spider_mite': '#d32f2f',    // Красный - для паутинных клещей
+                    'powdery_mildew': '#ff9800', // Оранжевый
+                    'leaf_spot': '#4caf50',      // Зеленый
+                    'rust': '#795548',           // Коричневый
+                    'late_blight': '#9c27b0',    // Фиолетовый
+                    'black_spot': '#607d8b'      // Сине-серый
+                };
+                return colors[type] || '#666666';
+            }
+
+            getSeverityText(severity) {
+                const texts = {
+                    'low': 'Низкая',
+                    'medium': 'Средняя', 
+                    'high': 'Высокая'
+                };
+                return texts[severity] || 'Неизвестно';
+            }
+
+            getPluralForm(number, forms) {
+                const cases = [2, 0, 1, 1, 1, 2];
+                return forms[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]];
+            }
+
+            showLoading(title = 'Загрузка...', message = '') {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                document.getElementById('loadingTitle').textContent = title;
+                document.getElementById('loadingMessage').textContent = message || title;
+            }
+
+            hideLoading() {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                this.updateProgress(0);
+                document.getElementById('batchProgress').textContent = '';
+            }
+
+            updateProgress(percent) {
+                document.getElementById('progressBar').style.width = percent + '%';
+            }
+        }
+
+        // Инициализация приложения после загрузки DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            new PlantDiseaseDetector();
+        });
+    </script>
+</body>
+</html>
