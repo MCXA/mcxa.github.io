@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ИИ 54,306 — Автоматическая разметка</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+  <!-- Для экспорта размеченных изображений в один ZIP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    .image-card { position: relative; }
+    .overlay-canvas { position: absolute; left:0; top:0; pointer-events:none; }
+    .dropzone { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 20px; cursor: pointer; }
+    .video-wrap { background: #0f172a; border-radius:6px; padding:6px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 p-6">
+  <div class="max-w-6xl mx-auto">
+    <header class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-semibold">ИИ 54,306 — автоматическая разметка</h1>
+      <div class="text-sm text-slate-600">Разметка болезней и паутинного клеща + экспорт размеченных изображений</div>
+    </header>
+
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="p-4 bg-white rounded shadow col-span-1 md:col-span-1">
+        <h2 class="font-medium mb-2">1) Модель</h2>
+        <input id="modelUrl" class="w-full mb-2 p-2 border rounded" placeholder="URL к model.json (опционально)" />
+        <input id="modelUpload" type="file" accept="application/json" class="mb-2 block" />
+        <button id="loadModelBtn" class="w-full bg-sky-600 text-white py-2 rounded">Загрузить модель</button>
+        <div id="modelStatus" class="text-xs text-slate-600 mt-2">Модель не загружена</div>
+        <p class="text-xs text-slate-500 mt-2">Примечание: для лучшей локализации используйте модель-детектор (bbox) или LayersModel для Grad-CAM.</p>
+      </div>
+
+      <div class="p-4 bg-white rounded shadow col-span-1 md:col-span-1">
+        <h2 class="font-medium mb-2">2) Источники изображений</h2>
+        <div id="dropzone" class="dropzone mb-2">Перетащите файлы сюда или нажмите, чтобы выбрать</div>
+        <input id="imagesInput" type="file" accept="image/*" multiple class="mb-2" />
+        <div class="mt-3">
+          <label class="block text-sm text-slate-600 mb-1">Порог уверенности: <span id="confLabel">0.5</span></label>
+          <input id="confThreshold" type="range" min="0" max="1" step="0.01" value="0.5" />
+        </div>
+      </div>
+
+      <div class="p-4 bg-white rounded shadow col-span-1 md:col-span-1">
+        <h2 class="font-medium mb-2">3) Веб-камера</h2>
+        <div class="video-wrap mb-2">
+          <video id="webcamVideo" width="320" height="240" autoplay playsinline muted style="border-radius:6px; display:block"></video>
+        </div>
+        <div class="flex gap-2">
+          <button id="startCamBtn" class="flex-1 bg-emerald-600 text-white py-2 rounded">Запустить камеру</button>
+          <button id="stopCamBtn" class="flex-1 bg-red-500 text-white py-2 rounded">Остановить</button>
+        </div>
+        <button id="captureBtn" class="w-full mt-2 bg-indigo-600 text-white py-2 rounded">Сделать снимок и добавить</button>
+        <p class="text-xs text-slate-500 mt-2">Снимки с веб-камеры добавляются в галерею как обычные файлы для разметки.</p>
+      </div>
+
+      <div class="p-4 bg-white rounded shadow col-span-1 md:col-span-1">
+        <h2 class="font-medium mb-2">4) Управление разметкой / Экспорт</h2>
+        <div class="space-y-2">
+          <button id="runAllBtn" class="w-full bg-sky-600 text-white py-2 rounded">Разметить все</button>
+          <button id="exportJsonBtn" class="w-full bg-orange-500 text-white py-2 rounded">Экспорт аннотаций (JSON)</button>
+          <button id="exportAnnotatedBtn" class="w-full bg-purple-600 text-white py-2 rounded">Экспорт размеченных изображений (ZIP)</button>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">Экспортирует изображения с нарисованными bbox/масками и файл annotations.json внутри ZIP.</p>
+      </div>
+    </section>
+
+    <section id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></section>
+
+    <footer class="mt-6 text-xs text-slate-500">Подсказка: обязательно загрузите модель, натренированную на PlantVillage для качественной разметки. Этот интерфейс — для удобного прототипирования и быстрой проверки.</footer>
+  </div>
+
+  <template id="imageCardTemplate">
+    <div class="image-card bg-white rounded shadow p-3">
+      <div class="flex justify-between items-start mb-2">
+        <div class="text-sm font-medium name"></div>
+        <div class="text-xs text-slate-500 meta"></div>
+      </div>
+      <div class="relative">
+        <canvas class="preview w-full rounded" width="640" height="480"></canvas>
+        <canvas class="overlay-canvas" width="640" height="480"></canvas>
+      </div>
+      <div class="mt-2 text-sm predictions"></div>
+      <div class="mt-2 flex gap-2">
+        <button class="annotateBtn px-2 py-1 bg-sky-500 text-white rounded text-xs">Разметить</button>
+        <button class="manualBtn px-2 py-1 border rounded text-xs">Ручная правка</button>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    /********************************************************************
+     * Обновлённый ИИ 54,306
+     * Изменения:
+     * - Всегда пытаемся выделять зоны (heatmap -> mask -> bbox), даже при низкой уверенности
+     * - Поддержка захвата с веб-камеры (добавление снимков в галерею)
+     * - Экспорт размечённых изображений в ZIP (annotated PNG + annotations.json)
+     ********************************************************************/
+
+    const CLASS_NAMES = ['здоровый', 'паутинный клещ', 'бактер. пятнистость', 'пятнистость листьев', 'грибковое заболевание'];
+    const MAX_CANVAS_W = 640, MAX_CANVAS_H = 480;
+
+    let appState = { model: null, modelType: null, images: [] };
+
+    // UI
+    const modelUrl = document.getElementById('modelUrl');
+    const modelUpload = document.getElementById('modelUpload');
+    const loadModelBtn = document.getElementById('loadModelBtn');
+    const modelStatus = document.getElementById('modelStatus');
+    const dropzone = document.getElementById('dropzone');
+    const imagesInput = document.getElementById('imagesInput');
+    const gallery = document.getElementById('gallery');
+    const confThreshold = document.getElementById('confThreshold');
+    const confLabel = document.getElementById('confLabel');
+    const runAllBtn = document.getElementById('runAllBtn');
+    const exportJsonBtn = document.getElementById('exportJsonBtn');
+    const exportAnnotatedBtn = document.getElementById('exportAnnotatedBtn');
+
+    // webcam
+    const startCamBtn = document.getElementById('startCamBtn');
+    const stopCamBtn = document.getElementById('stopCamBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const webcamVideo = document.getElementById('webcamVideo');
+    let webcamStream = null;
+
+    confThreshold.addEventListener('input', ()=> confLabel.innerText = confThreshold.value);
+
+    dropzone.addEventListener('click', ()=> imagesInput.click());
+    dropzone.addEventListener('dragover', e=>{ e.preventDefault(); dropzone.classList.add('bg-slate-100'); });
+    dropzone.addEventListener('dragleave', e=>{ dropzone.classList.remove('bg-slate-100'); });
+    dropzone.addEventListener('drop', e=>{ e.preventDefault(); dropzone.classList.remove('bg-slate-100'); handleFiles(e.dataTransfer.files); });
+    imagesInput.addEventListener('change', e=> handleFiles(e.target.files));
+
+    loadModelBtn.addEventListener('click', async ()=>{
+      modelStatus.innerText = 'Загрузка...';
+      try {
+        if (modelUpload.files && modelUpload.files.length>0) {
+          const files = Array.from(modelUpload.files);
+          appState.model = await tf.loadGraphModel(tf.io.browserFiles(files));
+          modelStatus.innerText = 'Модель загружена (локальный upload).';
+          appState.modelType = 'detector';
+        } else if (modelUrl.value.trim()) {
+          appState.model = await tf.loadGraphModel(modelUrl.value.trim());
+          modelStatus.innerText = 'Модель загружена (URL).';
+          appState.modelType = 'detector';
+        } else {
+          appState.model = await loadDemoClassifier();
+          modelStatus.innerText = 'Встроенный демо-классификатор загружен (для примера).';
+          appState.modelType = 'classifier';
+        }
+      } catch (err) { console.error(err); modelStatus.innerText = 'Ошибка: '+err.message; }
+    });
+
+    async function loadDemoClassifier(){
+      const m = tf.sequential();
+      m.add(tf.layers.flatten({inputShape:[224,224,3]}));
+      m.add(tf.layers.dense({units: 64, activation:'relu'}));
+      m.add(tf.layers.dense({units: CLASS_NAMES.length}));
+      m.predict(tf.zeros([1,224,224,3]));
+      return m;
+    }
+
+    function handleFiles(fileList){
+      const files = Array.from(fileList).filter(f => f.type && f.type.startsWith('image/'));
+      files.forEach(file=>{
+        const reader = new FileReader();
+        reader.onload = e=> createImageCardFromDataUrl(e.target.result, file.name, file);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function createImageCardFromDataUrl(dataUrl, filename='image.png', fileObj=null){
+      const tpl = document.getElementById('imageCardTemplate');
+      const node = tpl.content.cloneNode(true);
+      const wrapper = node.querySelector('.image-card');
+      const nameEl = wrapper.querySelector('.name');
+      const metaEl = wrapper.querySelector('.meta');
+      const preview = wrapper.querySelector('.preview');
+      const overlay = wrapper.querySelector('.overlay-canvas');
+      const predEl = wrapper.querySelector('.predictions');
+
+      nameEl.innerText = filename;
+      metaEl.innerText = (fileObj ? Math.round(fileObj.size/1024)+' KB' : '');
+
+      const img = new Image();
+      img.onload = ()=>{
+        const [w,h] = scaleToMax(img.width, img.height, MAX_CANVAS_W, MAX_CANVAS_H);
+        preview.width = overlay.width = w; preview.height = overlay.height = h;
+        const ctx = preview.getContext('2d'); ctx.clearRect(0,0,w,h); ctx.drawImage(img,0,0,w,h);
+      };
+      img.src = dataUrl;
+
+      wrapper.querySelector('.annotateBtn').addEventListener('click', ()=> runAnnotateSingle(wrapper));
+      wrapper.querySelector('.manualBtn').addEventListener('click', ()=> enableManualEdit(wrapper));
+
+      const cardObj = { file: fileObj, dataUrl, img, wrapper, preview, overlay, predEl, annotations: [] };
+      appState.images.push(cardObj);
+      gallery.appendChild(node);
+    }
+
+    function scaleToMax(w,h,maxW,maxH){ const ratio = Math.min(maxW/w, maxH/h, 1); return [Math.round(w*ratio), Math.round(h*ratio)]; }
+
+    async function runAnnotateSingle(wrapper){ const idx = appState.images.findIndex(i=>i.wrapper===wrapper); if (idx<0) return; const item = appState.images[idx]; await annotateItem(item); }
+
+    runAllBtn.addEventListener('click', async ()=>{ for (const item of appState.images) await annotateItem(item); alert('Готово: все изображения обработаны.'); });
+
+    async function annotateItem(item){
+      const ctx = item.preview.getContext('2d'); const w = item.preview.width, h = item.preview.height;
+      let imgTensor = tf.browser.fromPixels(item.preview).toFloat();
+      const input = tf.image.resizeBilinear(imgTensor, [224,224]).div(255).expandDims(0);
+      item.annotations = [];
+      const overlayCtx = item.overlay.getContext('2d'); overlayCtx.clearRect(0,0,w,h);
+
+      if (!appState.model){ modelStatus.innerText = 'Модель не загружена. Используется демо-классификатор.'; appState.model = await loadDemoClassifier(); appState.modelType = 'classifier'; }
+
+      // Универсальный подход: если модель — детектор и возвращает boxes -> используйте детекторный путь
+      if (appState.modelType === 'detector'){
+        try{
+          // попытка вызвать executeAsync и распарсить common outputs
+          const preds = await appState.model.executeAsync(tf.image.resizeBilinear(tf.browser.fromPixels(item.preview).toFloat().expandDims(0), [640,640]));
+          // !!! ВАЖНО: формат вывода зависит от вашей модели. Пример ниже — лишь шаблон.
+          // Пользователь должен адаптировать: предположим preds = {boxes, scores, classes}
+          console.warn('Детектор: адаптируйте разбор preds под формат вашей модели. Текущее поведение — демонстрационное.');
+        } catch(e){ console.error(e); }
+      }
+
+      // Классификатор + Grad-CAM fallback: всегда пытаемся получить heatmap и bbox зоны
+      try{
+        const logits = appState.model.predict(input);
+        let probsTensor = Array.isArray(logits) ? tf.softmax(logits[0]) : tf.softmax(logits.squeeze());
+        const probs = await probsTensor.array();
+        const top = getTopK(probs, 3);
+        item.predEl.innerHTML = top.map(t => `<div>${CLASS_NAMES[t.index]} — ${(t.value*100).toFixed(1)}%</div>`).join('');
+
+        // Всегда вычисляем Grad-CAM для топ-1 класса чтобы выделить области (даже при низком conf)
+        const topIdx = top[0].index;
+        const conf = top[0].value;
+        let heatmap = null;
+        try{ heatmap = await computeGradCAM(appState.model, input, topIdx); }
+        catch(e){ console.warn('Grad-CAM не сработал:', e); }
+
+        if (heatmap){
+          // Для отображения: threshold можно изменить, но мы рисуем:
+          // - жесткий bbox для плотных областей (thresholdHigh)
+          // - светлую маску для более низких значений (thresholdLow)
+          const maskLow = thresholdHeatmap(heatmap, parseFloat(confThreshold.value) * 0.5);
+          const maskHigh = thresholdHeatmap(heatmap, Math.max(0.25, parseFloat(confThreshold.value)) );
+          const bboxHigh = maskToBBox(maskHigh, w, h);
+          const bboxLow = maskToBBox(maskLow, w, h);
+
+          // всегда рисуем полупрозрачную heatmap
+          drawHeatmapOverlay(overlayCtx, heatmap, w, h);
+
+          // если есть high bbox — считаем это аннотацией с уверенным score
+          if (bboxHigh){ item.annotations.push({class: CLASS_NAMES[topIdx], score: conf, bbox: bboxHigh}); drawBBox(overlayCtx, bboxHigh, CLASS_NAMES[topIdx], conf); }
+          // если нет high, но есть low — добавим слабое предупреждение
+          else if (bboxLow){ item.annotations.push({class: CLASS_NAMES[topIdx], score: Math.max(0.1, conf*0.6), bbox: bboxLow}); drawBBox(overlayCtx, bboxLow, CLASS_NAMES[topIdx] + ' (low)', Math.max(0.1, conf*0.6)); }
+        }
+
+        if (item.annotations.length === 0){ item.predEl.innerHTML += '<div class="text-slate-500">Не найдено заметных зон (проверьте вручную).</div>'; }
+
+        tf.dispose([imgTensor, input, probsTensor, logits]);
+      } catch(e){ console.error('Ошибка аннотирования (classifier path):', e); }
+    }
+
+    function getTopK(arr, k){ const pairs = arr.map((v,i)=>({value:v,index:i})); pairs.sort((a,b)=>b.value-a.value); return pairs.slice(0,k); }
+
+    // Grad-CAM (упрощённый, работает с LayersModel)
+    async function computeGradCAM(model, inputTensor, classIndex){
+      if (!model || !model.layers) throw new Error('Grad-CAM требует LayersModel (tf.Model)');
+      let lastConv=null; for (let i=model.layers.length-1;i>=0;i--){ const L=model.layers[i]; if (L.getClassName && L.getClassName().toLowerCase().includes('conv')){ lastConv=L; break; }}
+      if (!lastConv) throw new Error('Не найден conv слой для Grad-CAM');
+      const convModel = tf.model({inputs: model.inputs, outputs: lastConv.output});
+
+      // Получаем предсказание и градиенты по входу (приближённо), далее строим heatmap
+      const predict = x => model.predict(x);
+      const grads = tf.grad(x=> predict(x).slice([0,classIndex],[1,1]).asScalar())(inputTensor);
+      const gradsAbs = grads.abs();
+      const pooled = tf.mean(gradsAbs, -1); // [1,224,224]
+      let heatmap = tf.image.resizeBilinear(pooled.expandDims(-1), [MAX_CANVAS_H, MAX_CANVAS_W]).squeeze();
+      const hmMin = heatmap.min(); const hmMax = heatmap.max();
+      heatmap = heatmap.sub(hmMin).div(hmMax.sub(hmMin).add(1e-6));
+      const heatmapArr = await heatmap.array();
+      tf.dispose([grads, gradsAbs, pooled, heatmap, hmMin, hmMax]);
+      return heatmapArr;
+    }
+
+    function thresholdHeatmap(heatmap, threshold=0.35){ const h=heatmap.length, w=heatmap[0].length; const mask = new Array(h).fill(0).map(()=>new Array(w).fill(0)); for (let y=0;y<h;y++) for (let x=0;x<w;x++) if (heatmap[y][x] >= threshold) mask[y][x]=1; return mask; }
+
+    function maskToBBox(mask, canvasW, canvasH){ const h=mask.length, w=mask[0].length; let minx=w, miny=h, maxx=0, maxy=0, found=false; for (let y=0;y<h;y++) for (let x=0;x<w;x++) if (mask[y][x]){ found=true; minx=Math.min(minx,x); miny=Math.min(miny,y); maxx=Math.max(maxx,x); maxy=Math.max(maxy,y); } if (!found) return null; const x = Math.round(minx/w * canvasW); const y = Math.round(miny/h * canvasH); const bw = Math.round((maxx-minx)/w * canvasW); const bh = Math.round((maxy-miny)/h * canvasH); return {x,y,w:bw,h:bh}; }
+
+    function drawBBox(ctx,bbox,label,score){ ctx.lineWidth=3; ctx.strokeStyle='rgba(220,20,60,0.9)'; ctx.fillStyle='rgba(220,20,60,0.9)'; ctx.strokeRect(bbox.x,bbox.y,bbox.w,bbox.h); ctx.font='16px Inter'; ctx.textBaseline='top'; const text=`${label} ${(score*100).toFixed(1)}%`; const textW=ctx.measureText(text).width+8; ctx.fillRect(bbox.x, Math.max(0,bbox.y-22), textW, 20); ctx.fillStyle='#fff'; ctx.fillText(text, bbox.x+4, Math.max(0,bbox.y-20)); }
+
+    function drawHeatmapOverlay(ctx, heatmap, canvasW, canvasH){ const h=heatmap.length, w=heatmap[0].length; const imageData = ctx.createImageData(canvasW, canvasH); for (let y=0;y<canvasH;y++){ for (let x=0;x<canvasW;x++){ const v = heatmap[Math.floor(y*h/canvasH)][Math.floor(x*w/canvasW)]; const idx=(y*canvasW+x)*4; imageData.data[idx]=Math.round(255*v); imageData.data[idx+1]=Math.round(60*v); imageData.data[idx+2]=Math.round(60*v); imageData.data[idx+3]=Math.round(120*v); } } ctx.putImageData(imageData,0,0); }
+
+    // Ручная правка: оставляем как раньше (рисование bbox)
+    function enableManualEdit(wrapper){ const item=appState.images.find(i=>i.wrapper===wrapper); if(!item) return; const ov=item.overlay; const ctx=ov.getContext('2d'); let drawing=false,startX=0,startY=0,rect=null; ov.style.pointerEvents='auto'; ov.addEventListener('mousedown', mdown); ov.addEventListener('mousemove', mmove); ov.addEventListener('mouseup', mup);
+      function mdown(e){ drawing=true; const r=ov.getBoundingClientRect(); startX=e.clientX-r.left; startY=e.clientY-r.top; }
+      function mmove(e){ if(!drawing) return; const r=ov.getBoundingClientRect(); const x=e.clientX-r.left; const y=e.clientY-r.top; ctx.clearRect(0,0,ov.width,ov.height); if (item.annotations[0]) drawBBox(ctx, item.annotations[0].bbox, item.annotations[0].class, item.annotations[0].score); rect={x:Math.min(startX,x), y:Math.min(startY,y), w:Math.abs(x-startX), h:Math.abs(y-startY)}; ctx.strokeStyle='yellow'; ctx.lineWidth=2; ctx.strokeRect(rect.x,rect.y,rect.w,rect.h); }
+      function mup(e){ drawing=false; ov.style.pointerEvents='none'; if (rect){ const label = prompt('Класс (например: паутинный клещ):','паутинный клещ'); const score = parseFloat(prompt('Уверенность (0..1):','0.9')) || 0.9; item.annotations.push({class: label, score, bbox:rect}); drawBBox(ctx, rect, label, score); } ov.removeEventListener('mousedown', mdown); ov.removeEventListener('mousemove', mmove); ov.removeEventListener('mouseup', mup); }
+
+    // Экспорт JSON (COCO-like)
+    exportJsonBtn.addEventListener('click', ()=>{
+      const out = {images:[], annotations:[], categories:[]};
+      const catMap = {}; CLASS_NAMES.forEach((c,i)=>{ catMap[c]=i+1; out.categories.push({id:i+1,name:c}); });
+      let annId=1; appState.images.forEach((it, idx)=>{ out.images.push({id: idx+1, fileName: it.file ? it.file.name : it.dataUrl ? it.wrapper.querySelector('.name').innerText : 'img_'+(idx+1), width: it.preview.width, height: it.preview.height}); it.annotations.forEach(a=>{ const catId = catMap[a.class] || (out.categories.push({id: out.categories.length+1,name:a.class}), out.categories.length); out.annotations.push({id: annId++, image_id: idx+1, category_id: catId, bbox: [a.bbox.x, a.bbox.y, a.bbox.w, a.bbox.h], score: a.score}); }); });
+      const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='annotations.json'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // Экспорт размечённых изображений в ZIP
+    exportAnnotatedBtn.addEventListener('click', async ()=>{
+      if (!window.JSZip){ alert('JSZip не загружен'); return; }
+      const zip = new JSZip(); const annotationsOut = {images:[], annotations:[], categories:[]}; const catMap = {}; CLASS_NAMES.forEach((c,i)=>{ catMap[c]=i+1; annotationsOut.categories.push({id:i+1,name:c}); }); let annId=1;
+      for (let i=0;i<appState.images.length;i++){
+        const it = appState.images[i]; const merged = document.createElement('canvas'); merged.width = it.preview.width; merged.height = it.preview.height; const mctx = merged.getContext('2d'); mctx.drawImage(it.preview,0,0); // overlay canvas содержит heatmap + bbox
+        mctx.drawImage(it.overlay,0,0);
+        const dataUrl = merged.toDataURL('image/png'); // добавляем в zip
+        const imgName = (it.file && it.file.name) ? it.file.name.replace(/\.[^/.]+$/,'') : `img_${i+1}`;
+        const imgFileName = imgName + '_annotated.png';
+        zip.file(imgFileName, dataURLtoBlob(dataUrl));
+        annotationsOut.images.push({id:i+1, fileName: imgFileName, width: merged.width, height: merged.height});
+        it.annotations.forEach(a=>{ const catId = catMap[a.class] || (annotationsOut.categories.push({id: annotationsOut.categories.length+1, name:a.class}), annotationsOut.categories.length); annotationsOut.annotations.push({id: annId++, image_id: i+1, category_id: catId, bbox:[a.bbox.x,a.bbox.y,a.bbox.w,a.bbox.h], score: a.score}); });
+      }
+      zip.file('annotations.json', JSON.stringify(annotationsOut, null, 2));
+      const content = await zip.generateAsync({type:'blob'});
+      saveAs(content, 'annotated_images_with_annotations.zip');
+    });
+
+    function dataURLtoBlob(dataurl){ const arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1], bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n); for (let i=0;i<n;i++) u8arr[i]=bstr.charCodeAt(i); return new Blob([u8arr], {type:mime}); }
+
+    // --- Webcam controls ---
+    startCamBtn.addEventListener('click', async ()=>{
+      try{ webcamStream = await navigator.mediaDevices.getUserMedia({video:{width:640, height:480}, audio:false}); webcamVideo.srcObject = webcamStream; webcamVideo.play(); }
+      catch(e){ alert('Ошибка доступа к камере: '+e.message); }
+    });
+    stopCamBtn.addEventListener('click', ()=>{ if (webcamStream){ webcamStream.getTracks().forEach(t=>t.stop()); webcamVideo.srcObject = null; webcamStream = null; }});
+    captureBtn.addEventListener('click', ()=>{
+      if (!webcamVideo.videoWidth) { alert('Камера не активна'); return; }
+      const c = document.createElement('canvas'); c.width = webcamVideo.videoWidth; c.height = webcamVideo.videoHeight; const cx = c.getContext('2d'); cx.drawImage(webcamVideo,0,0,c.width,c.height); const dataUrl = c.toDataURL('image/png'); const name = 'webcam_'+(new Date().toISOString().replace(/[:.]/g,'-'))+'.png'; createImageCardFromDataUrl(dataUrl, name, null);
+    });
+
+  </script>
+</body>
+</html>
