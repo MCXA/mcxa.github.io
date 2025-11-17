@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Хаб камер</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --warning: #d97706;
+            --error: #dc2626;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--primary), #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .progress-container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 20px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+        }
+
+        .status-led {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--warning);
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .status-led.ready {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        .status-led.error {
+            background: var(--error);
+            box-shadow: 0 0 10px var(--error);
+        }
+
+        .panels {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+
+        /* Остальные стили остаются без изменений */
+        .control-panel {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            height: fit-content;
+        }
+
+        .cameras-panel {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .custom-input, .custom-select, .custom-button {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            appearance: none;
+        }
+
+        .custom-input:focus, .custom-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .custom-button {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 14px;
+        }
+
+        .custom-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+        }
+
+        .cameras-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .camera-card {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .camera-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px);
+        }
+
+        .camera-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .camera-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .camera-type {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%;
+            background: #000;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .camera-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+        }
+
+        .btn-remove {
+            background: var(--error);
+        }
+
+        .btn-remove:hover {
+            background: #b91c1c;
+        }
+
+        .device-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            background: var(--bg);
+        }
+
+        .device-item {
+            padding: 8px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .device-item:hover {
+            background: var(--primary-dark);
+        }
+
+        .device-item:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 1024px) {
+            .panels {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Хаб камер</h1>
+            <div class="status-container">
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-led" id="status-led"></div>
+                    <span id="status-text">Загрузка FFmpeg...</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="panels">
+            <section class="control-panel">
+                <h2 class="section-title">Добавить камеру</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">Название камеры</label>
+                    <input type="text" id="camera-name" class="custom-input" placeholder="Введите название камеры">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Тип подключения</label>
+                    <select id="camera-type" class="custom-select">
+                        <option value="local"><i class="fas fa-camera"></i> WEB</option>
+                        <option value="ip"><i class="fas fa-network-wired"></i> IP</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="ip-url-group">
+                    <label class="form-label">URL IP-камеры</label>
+                    <input type="text" id="camera-url" class="custom-input" placeholder="rtsp://... или http://...">
+                </div>
+
+                <button id="add-camera" class="custom-button">Добавить камеру</button>
+            </section>
+
+            <section class="cameras-panel">
+                <h2 class="section-title">Подключенные камеры</h2>
+                <div class="cameras-grid" id="cameras-container">
+                    <!-- Карточки камер будут здесь -->
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Правильное подключение FFmpeg.wasm -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.12.15/umd/ffmpeg.min.js"></script>
+    <script>
+        class CameraHub {
+            constructor() {
+                this.cameras = new Map();
+                this.cameraIdCounter = 1;
+                this.ffmpegLoaded = false;
+                
+                this.initializeFFmpeg();
+                this.setupEventListeners();
+                this.updateUI();
+            }
+
+            async initializeFFmpeg() {
+                try {
+                    this.updateStatus('Загрузка FFmpeg...', 0, 'loading');
+                    
+                    // Проверяем доступность FFmpeg
+                    if (typeof FFmpeg === 'undefined') {
+                        throw new Error('Библиотека FFmpeg не загрузилась');
+                    }
+
+                    this.updateStatus('Инициализация ядра...', 30, 'loading');
+
+                    const { createFFmpeg } = FFmpeg;
+                    this.ffmpeg = createFFmpeg({
+                        log: false,
+                        coreURL: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.12.10/umd/ffmpeg-core.min.js'
+                    });
+
+                    this.updateStatus('Загрузка WebAssembly...', 60, 'loading');
+                    await this.ffmpeg.load();
+                    
+                    this.ffmpegLoaded = true;
+                    this.updateStatus('Готов к работе', 100, 'ready');
+                    
+                } catch (error) {
+                    console.error('Ошибка инициализации FFmpeg:', error);
+                    this.updateStatus('Ошибка загрузки', 100, 'error');
+                }
+            }
+
+            updateStatus(message, progress, status) {
+                const progressBar = document.getElementById('progress-bar');
+                const statusLed = document.getElementById('status-led');
+                const statusText = document.getElementById('status-text');
+                
+                if (progressBar) progressBar.style.width = progress + '%';
+                if (statusText) statusText.textContent = message;
+                if (statusLed) {
+                    statusLed.className = 'status-led ' + status;
+                }
+            }
+
+            setupEventListeners() {
+                document.getElementById('add-camera').addEventListener('click', () => this.addCamera());
+                
+                document.getElementById('camera-type').addEventListener('change', (e) => {
+                    document.getElementById('ip-url-group').style.display = 
+                        e.target.value === 'ip' ? 'block' : 'none';
+                });
+            }
+
+            addCamera() {
+                const name = document.getElementById('camera-name').value || `Камера ${this.cameraIdCounter}`;
+                const type = document.getElementById('camera-type').value;
+                const url = type === 'ip' ? document.getElementById('camera-url').value : '';
+                
+                const camera = {
+                    id: this.cameraIdCounter++,
+                    name,
+                    type,
+                    url,
+                    stream: null,
+                    videoElement: null
+                };
+
+                this.createCameraCard(camera);
+                this.cameras.set(camera.id, camera);
+
+                if (type === 'local') {
+                    this.initializeLocalCamera(camera);
+                } else {
+                    this.initializeIPCamera(camera);
+                }
+
+                // Очистка формы
+                document.getElementById('camera-name').value = '';
+                document.getElementById('camera-url').value = '';
+                
+                this.updateUI();
+            }
+
+            createCameraCard(camera) {
+                const container = document.getElementById('cameras-container');
+                const card = document.createElement('div');
+                card.className = 'camera-card';
+                card.dataset.cameraId = camera.id;
+                
+                const typeIcon = camera.type === 'local' ? 
+                    '<i class="fas fa-camera"></i> WEB' : 
+                    '<i class="fas fa-network-wired"></i> IP';
+                
+                card.innerHTML = `
+                    <div class="camera-header">
+                        <div class="camera-title">${camera.name}</div>
+                        <div class="camera-type">${typeIcon}</div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <video class="camera-video" autoplay playsinline muted></video>
+                    </div>
+                    
+                    <div class="camera-controls">
+                        <button class="custom-button btn-small start-btn">Старт</button>
+                        <button class="custom-button btn-small stop-btn">Стоп</button>
+                        <button class="custom-button btn-small record-btn">Запись</button>
+                        <button class="custom-button btn-small btn-remove remove-btn">Удалить</button>
+                    </div>
+                `;
+
+                camera.videoElement = card.querySelector('.camera-video');
+                
+                // Добавляем обработчики событий
+                card.querySelector('.start-btn').addEventListener('click', () => this.startCamera(camera.id));
+                card.querySelector('.stop-btn').addEventListener('click', () => this.stopCamera(camera.id));
+                card.querySelector('.record-btn').addEventListener('click', () => this.recordClip(camera.id));
+                card.querySelector('.remove-btn').addEventListener('click', () => this.removeCamera(camera.id));
+                
+                container.appendChild(card);
+                return card;
+            }
+
+            async initializeLocalCamera(camera) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        },
+                        audio: false
+                    });
+                    
+                    camera.stream = stream;
+                    camera.videoElement.srcObject = stream;
+                    
+                } catch (error) {
+                    console.error('Ошибка доступа к камере:', error);
+                }
+            }
+
+            initializeIPCamera(camera) {
+                if (!camera.url) return;
+
+                try {
+                    camera.videoElement.src = camera.url;
+                    camera.videoElement.crossOrigin = 'anonymous';
+                } catch (error) {
+                    console.error('Ошибка подключения к IP-камере:', error);
+                }
+            }
+
+            startCamera(id) {
+                const camera = this.cameras.get(id);
+                if (!camera) return;
+
+                if (camera.type === 'local') {
+                    this.initializeLocalCamera(camera);
+                } else {
+                    this.initializeIPCamera(camera);
+                }
+            }
+
+            stopCamera(id) {
+                const camera = this.cameras.get(id);
+                if (!camera) return;
+
+                if (camera.stream) {
+                    camera.stream.getTracks().forEach(track => track.stop());
+                    camera.stream = null;
+                }
+
+                if (camera.videoElement) {
+                    camera.videoElement.srcObject = null;
+                    camera.videoElement.src = '';
+                }
+            }
+
+            removeCamera(id) {
+                this.stopCamera(id);
+                this.cameras.delete(id);
+                
+                const card = document.querySelector(`[data-camera-id="${id}"]`);
+                if (card) {
+                    card.remove();
+                }
+                
+                this.updateUI();
+            }
+
+            async recordClip(id) {
+                if (!this.ffmpegLoaded) {
+                    alert('FFmpeg еще не загружен. Подождите...');
+                    return;
+                }
+
+                const camera = this.cameras.get(id);
+                if (!camera || !camera.videoElement) return;
+
+                try {
+                    // Здесь будет реализация записи через FFmpeg
+                    console.log('Начало записи для камеры', id);
+                } catch (error) {
+                    console.error('Ошибка записи:', error);
+                }
+            }
+
+            updateUI() {
+                // Обновляем счетчик камер и другую информацию
+            }
+        }
+
+        // Инициализация приложения
+        let app;
+        window.addEventListener('load', () => {
+            app = new CameraHub();
+        });
+    </script>
+</body>
+</html>
