@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>IP / Web камера хаб + ffmpeg.wasm</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /* Минимальный базовый стиль, только чтобы всё было читаемо */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    a { color: #38bdf8; }
+    #app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px;
+    }
+    header {
+      margin-bottom: 12px;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 8px;
+    }
+    h1 { font-size: 18px; margin: 0 0 6px; }
+    p { margin: 4px 0; font-size: 13px; }
+    small { font-size: 12px; color: #9ca3af; }
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-end;
+      margin: 12px 0;
+      padding: 8px;
+      border: 1px solid #1f2937;
+      border-radius: 4px;
+    }
+    label { display: flex; flex-direction: column; font-size: 12px; gap: 2px; }
+    input, select {
+      min-width: 160px;
+      padding: 4px 6px;
+      border-radius: 3px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 13px;
+    }
+    button {
+      padding: 5px 10px;
+      font-size: 13px;
+      border-radius: 3px;
+      border: 1px solid #38bdf8;
+      background: #0b1120;
+      color: #e5e7eb;
+      cursor: pointer;
+    }
+    button:hover { background: #1d283a; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    #ffmpeg-status { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+    #cameras-counter { font-size: 13px; margin: 8px 0; }
+    #cameras-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 8px;
+    }
+    .cam {
+      border: 1px solid #1f2937;
+      border-radius: 4px;
+      padding: 6px;
+      font-size: 12px;
+      background: #020617;
+    }
+    .cam-header { display: flex; justify-content: space-between; gap: 4px; margin-bottom: 4px; }
+    .cam-header div { max-width: 70%; }
+    .cam-name { font-weight: 600; font-size: 13px; }
+    .cam-url { color: #9ca3af; word-break: break-all; }
+    .cam-type { font-size: 11px; color: #9ca3af; }
+    .cam video, .cam canvas {
+      width: 100%;
+      max-height: 220px;
+      background: #000;
+    }
+    .cam canvas { display: none; }
+    .cam-controls { margin: 4px 0; display: flex; flex-wrap: wrap; gap: 4px; }
+    .cam-status { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    .cam-download { display: none; font-size: 11px; margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Хаб камер + ffmpeg.wasm</h1>
+      <p>Локальная web‑камера и IP‑камеры (HTTP / MJPEG / HLS, если их умеет браузер). Запись коротких
+        фрагментов в MP4 через <code>ffmpeg.wasm</code>.</p>
+      <small id="ffmpeg-status">FFmpeg: ещё не инициализирован.</small>
+    </header>
+
+    <section>
+      <form id="camera-form">
+        <label>
+          Название
+          <input id="camera-label" name="label" placeholder="Например: Офис · вход" />
+        </label>
+        <label>
+          Тип
+          <select id="camera-type" name="type">
+            <option value="local">Локальная web‑камера</option>
+            <option value="ip-video">IP‑камера · video src</option>
+          </select>
+        </label>
+        <label>
+          URL (для IP‑камер)
+          <input id="camera-url" name="url" placeholder="https://host/stream" />
+        </label>
+        <button type="submit">Добавить камеру</button>
+      </form>
+      <small>Важно: RTSP напрямую в браузере не работает. Для удалённых камер нужен HTTP(S) поток, который может
+        декодировать сам браузер.</small>
+    </section>
+
+    <section>
+      <div id="cameras-counter">Нет активных камер</div>
+      <div id="cameras-grid"></div>
+    </section>
+  </div>
+
+  <!-- ffmpeg.wasm UMD -->
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js"></script>
+
+  <script>
+    // ==========================
+    //   ГЛОБАЛЬНОЕ СОСТОЯНИЕ
+    // ==========================
+    const cameras = new Map();
+    let cameraIdCounter = 1;
+
+    const gridEl = document.getElementById('cameras-grid');
+    const counterEl = document.getElementById('cameras-counter');
+    const ffmpegStatusEl = document.getElementById('ffmpeg-status');
+    const formEl = document.getElementById('camera-form');
+
+    function setFFmpegStatus(text) {
+      if (ffmpegStatusEl) ffmpegStatusEl.textContent = `FFmpeg: ${text}`;
+    }
+
+    // ==========================
+    //   FFmpeg: лениво и безопасно
+    // ==========================
+    let ffmpeg = null;
+    let ffmpegLoaded = false;
+    let ffmpegLoading = false;
+
+    function hasFFmpegGlobal() {
+      return typeof window !== 'undefined' && window.FFmpeg && typeof window.FFmpeg.createFFmpeg === 'function';
+    }
+
+    function initFFmpegInstance() {
+      if (ffmpeg || !hasFFmpegGlobal()) return;
+      const { createFFmpeg } = window.FFmpeg;
+      ffmpeg = createFFmpeg({
+        log: true,
+        corePath: 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/ffmpeg-core.js',
+      });
+    }
+
+    async function ensureFFmpegLoaded() {
+      if (!hasFFmpegGlobal()) {
+        setFFmpegStatus('недоступен (глобальный FFmpeg не найден). Проверьте загрузку скрипта ffmpeg.min.js.');
+        throw new Error('FFmpeg global not available');
+      }
+      if (!ffmpeg) initFFmpegInstance();
+      if (ffmpegLoaded) return;
+      if (ffmpegLoading) {
+        await new Promise((resolve) => {
+          const check = () => {
+            if (ffmpegLoaded) return resolve();
+            setTimeout(check, 200);
+          };
+          check();
+        });
+        return;
+      }
+      try {
+        ffmpegLoading = true;
+        setFFmpegStatus('загружается ядро…');
+        await ffmpeg.load();
+        ffmpegLoaded = true;
+        setFFmpegStatus('готов, можно писать MP4.');
+      } catch (e) {
+        console.error('FFmpeg load error', e);
+        setFFmpegStatus('ошибка загрузки, см. консоль.');
+        throw e;
+      } finally {
+        ffmpegLoading = false;
+      }
+    }
+
+    // ==========================
+    //   КАМЕРЫ: создание / удаление
+    // ==========================
+    function updateCounter() {
+      const n = cameras.size;
+      counterEl.textContent = n ? `Активные камеры: ${n}` : 'Нет активных камер';
+    }
+
+    function createCamera(label, type, url) {
+      const id = cameraIdCounter++;
+      const name = (label && label.trim()) || `Камера #${id}`;
+      const cam = {
+        id,
+        name,
+        type,
+        url: (url || '').trim(),
+        stream: null,
+        recording: false,
+        root: null,
+        video: null,
+        canvas: null,
+        statusEl: null,
+        downloadEl: null,
+      };
+      const card = buildCameraCard(cam);
+      cam.root = card;
+      cam.video = card.querySelector('video');
+      cam.canvas = card.querySelector('canvas');
+      cam.statusEl = card.querySelector('.cam-status');
+      cam.downloadEl = card.querySelector('.cam-download');
+      cameras.set(id, cam);
+      gridEl.appendChild(card);
+      updateCounter();
+
+      if (type === 'local') initLocalCamera(cam);
+      else initIpCamera(cam);
+    }
+
+    function buildCameraCard(cam) {
+      const card = document.createElement('article');
+      card.className = 'cam';
+      card.dataset.id = String(cam.id);
+
+      const header = document.createElement('div');
+      header.className = 'cam-header';
+      const left = document.createElement('div');
+      const nameEl = document.createElement('div');
+      nameEl.className = 'cam-name';
+      nameEl.textContent = cam.name;
+      const urlEl = document.createElement('div');
+      urlEl.className = 'cam-url';
+      urlEl.textContent = cam.url || 'Локальная web‑камера';
+      left.appendChild(nameEl);
+      left.appendChild(urlEl);
+
+      const right = document.createElement('div');
+      right.style.textAlign = 'right';
+      const typeEl = document.createElement('div');
+      typeEl.className = 'cam-type';
+      typeEl.textContent = cam.type === 'local' ? 'local / getUserMedia' : 'ip / video src';
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = 'Удалить';
+      removeBtn.style.fontSize = '11px';
+      removeBtn.addEventListener('click', () => removeCamera(cam.id));
+      right.appendChild(typeEl);
+      right.appendChild(removeBtn);
+
+      header.appendChild(left);
+      header.appendChild(right);
+
+      const video = document.createElement('video');
+      video.autoplay = true;
+      video.playsInline = true;
+      video.muted = true;
+
+      const canvas = document.createElement('canvas');
+
+      const controls = document.createElement('div');
+      controls.className = 'cam-controls';
+
+      const btnStart = document.createElement('button');
+      btnStart.type = 'button';
+      btnStart.textContent = 'Старт/переподключить';
+      btnStart.addEventListener('click', () => {
+        if (cam.type === 'local') initLocalCamera(cam, { force: true });
+        else initIpCamera(cam, { force: true });
+      });
+
+      const btnStop = document.createElement('button');
+      btnStop.type = 'button';
+      btnStop.textContent = 'Стоп поток';
+      btnStop.addEventListener('click', () => {
+        stopStream(cam);
+        setCamStatus(cam, 'Поток остановлен пользователем.');
+      });
+
+      const btnSnap = document.createElement('button');
+      btnSnap.type = 'button';
+      btnSnap.textContent = 'Снимок';
+      btnSnap.addEventListener('click', () => makeSnapshot(cam));
+
+      const btnRec = document.createElement('button');
+      btnRec.type = 'button';
+      btnRec.textContent = '10 сек → MP4';
+      btnRec.addEventListener('click', () => recordSegment(cam, 10).catch(console.error));
+
+      controls.appendChild(btnStart);
+      controls.appendChild(btnStop);
+      controls.appendChild(btnSnap);
+      controls.appendChild(btnRec);
+
+      const status = document.createElement('div');
+      status.className = 'cam-status';
+      status.textContent = 'Идёт инициализация…';
+
+      const download = document.createElement('a');
+      download.className = 'cam-download';
+      download.target = '_blank';
+      download.rel = 'noopener noreferrer';
+      download.textContent = 'Скачать последний MP4';
+
+      card.appendChild(header);
+      card.appendChild(video);
+      card.appendChild(canvas);
+      card.appendChild(controls);
+      card.appendChild(status);
+      card.appendChild(download);
+
+      return card;
+    }
+
+    function removeCamera(id) {
+      const cam = cameras.get(id);
+      if (!cam) return;
+      stopStream(cam);
+      if (cam.root && cam.root.parentNode) cam.root.parentNode.removeChild(cam.root);
+      cameras.delete(id);
+      updateCounter();
+    }
+
+    function stopStream(cam) {
+      if (cam.stream) {
+        cam.stream.getTracks().forEach((t) => t.stop());
+        cam.stream = null;
+      }
+      if (cam.video) {
+        try {
+          cam.video.pause();
+          cam.video.srcObject = null;
+          cam.video.removeAttribute('src');
+        } catch (e) {}
+      }
+    }
+
+    function setCamStatus(cam, text) {
+      if (cam.statusEl) cam.statusEl.textContent = text;
+    }
+
+    // ==========================
+    //   ИНИЦИАЛИЗАЦИЯ КАМЕР
+    // ==========================
+    async function initLocalCamera(cam, opts = {}) {
+      const force = !!opts.force;
+      try {
+        if (cam.stream && !force) {
+          cam.video.srcObject = cam.stream;
+          await cam.video.play();
+          setCamStatus(cam, 'Локальная камера уже активна.');
+          return;
+        }
+        if (force) stopStream(cam);
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setCamStatus(cam, 'getUserMedia не поддерживается браузером.');
+          return;
+        }
+        setCamStatus(cam, 'Запрос доступа к локальной камере…');
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        cam.stream = stream;
+        cam.video.srcObject = stream;
+        await cam.video.play();
+        setCamStatus(cam, 'Локальная web‑камера активна.');
+      } catch (e) {
+        console.error('Local cam error', e);
+        setCamStatus(cam, 'Ошибка доступа к локальной камере (права/HTTPS/настройки).');
+      }
+    }
+
+    async function initIpCamera(cam, opts = {}) {
+      const force = !!opts.force;
+      if (!cam.url) {
+        setCamStatus(cam, 'Для IP‑камеры нужен URL потока.');
+        return;
+      }
+      try {
+        if (force) stopStream(cam);
+        setCamStatus(cam, 'Подключение к IP‑камере…');
+        cam.video.srcObject = null;
+        cam.video.src = cam.url;
+        cam.video.crossOrigin = 'anonymous';
+        try {
+          await cam.video.play();
+          setCamStatus(cam, 'IP‑камера: поток запущен (если формат поддерживается браузером).');
+        } catch (e) {
+          console.warn('Autoplay blocked for IP cam', e);
+          setCamStatus(cam, 'IP‑камера: нажмите "Старт" или Play в контролах (autoplay заблокирован).');
+        }
+      } catch (e) {
+        console.error('IP cam error', e);
+        setCamStatus(cam, 'Ошибка подключения к IP‑камере (CORS/формат/доступ).');
+      }
+    }
+
+    // ==========================
+    //   СНИМОК (CANVAS)
+    // ==========================
+    function makeSnapshot(cam) {
+      if (!cam.video || !cam.canvas) return;
+      const v = cam.video;
+      if (v.readyState < 2) {
+        setCamStatus(cam, 'Видео ещё не готово для снимка.');
+        return;
+      }
+      const w = v.videoWidth || 640;
+      const h = v.videoHeight || 360;
+      const c = cam.canvas;
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(v, 0, 0, w, h);
+      c.style.display = 'block';
+      setCamStatus(cam, 'Снимок сделан (canvas).');
+    }
+
+    // ==========================
+    //   ЗАПИСЬ 10 СЕК В MP4 ЧЕРЕЗ FFmpeg
+    // ==========================
+    async function recordSegment(cam, seconds) {
+      if (cam.recording) {
+        setCamStatus(cam, 'Уже идёт запись для этой камеры.');
+        return;
+      }
+      if (!cam.video) {
+        setCamStatus(cam, 'Нет video элемента для записи.');
+        return;
+      }
+
+      let stream = cam.stream;
+      if (!stream) {
+        if (typeof cam.video.captureStream === 'function') {
+          stream = cam.video.captureStream();
+          cam.stream = stream;
+        } else {
+          setCamStatus(cam, 'captureStream() не поддерживается для этого видео.');
+          return;
+        }
+      }
+      if (!stream) {
+        setCamStatus(cam, 'Не удалось получить поток для записи.');
+        return;
+      }
+
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, {});
+      } catch (e) {
+        console.error('MediaRecorder error', e);
+        setCamStatus(cam, 'MediaRecorder не поддерживается или не может писать этот поток.');
+        return;
+      }
+
+      const chunks = [];
+      const recPromise = new Promise((resolve, reject) => {
+        recorder.ondataavailable = (ev) => {
+          if (ev.data && ev.data.size > 0) chunks.push(ev.data);
+        };
+        recorder.onerror = (ev) => reject(ev.error || new Error('MediaRecorder error'));
+        recorder.onstop = () => resolve();
+      });
+
+      recorder.start();
+      cam.recording = true;
+      setCamStatus(cam, `MediaRecorder: запись ${seconds} с…`);
+
+      setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop();
+      }, seconds * 1000);
+
+      try {
+        await recPromise;
+      } catch (e) {
+        console.error('Recording error', e);
+        setCamStatus(cam, 'Ошибка во время записи MediaRecorder, см. консоль.');
+        cam.recording = false;
+        return;
+      }
+
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      setCamStatus(cam, 'MediaRecorder: запись завершена, запуск FFmpeg…');
+
+      await ensureFFmpegLoaded();
+
+      const inputName = `input_${cam.id}.webm`;
+      const outputName = `output_${cam.id}.mp4`;
+
+      try {
+        const ab = await blob.arrayBuffer();
+        ffmpeg.FS('writeFile', inputName, new Uint8Array(ab));
+        setFFmpegStatus('конвертация в MP4…');
+
+        await ffmpeg.run(
+          '-i', inputName,
+          '-c:v', 'libx264',
+          '-preset', 'veryfast',
+          '-crf', '28',
+          '-an',
+          outputName
+        );
+
+        const data = ffmpeg.FS('readFile', outputName);
+        const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
+        const url = URL.createObjectURL(mp4Blob);
+
+        if (cam.downloadEl) {
+          cam.downloadEl.href = url;
+          cam.downloadEl.download = `${sanitizeFileName(cam.name)}_${Date.now()}.mp4`;
+          cam.downloadEl.style.display = 'inline-block';
+        }
+        setCamStatus(cam, 'Готов MP4‑файл, можно скачать.');
+        setFFmpegStatus('готов.');
+      } catch (e) {
+        console.error('FFmpeg convert error', e);
+        setCamStatus(cam, 'Ошибка FFmpeg при конвертации, см. консоль.');
+      } finally {
+        cam.recording = false;
+        try { ffmpeg.FS('unlink', inputName); } catch (e) {}
+        try { ffmpeg.FS('unlink', outputName); } catch (e) {}
+      }
+    }
+
+    function sanitizeFileName(name) {
+      return (name || 'camera').replace(/[^a-zA-Z0-9_\-]+/g, '_').slice(0, 40) || 'camera';
+    }
+
+    // ==========================
+    //   ОБРАБОТКА ФОРМЫ
+    // ==========================
+    formEl.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const label = document.getElementById('camera-label').value;
+      const type = document.getElementById('camera-type').value || 'local';
+      const url = document.getElementById('camera-url').value;
+      if (type !== 'local' && (!url || !url.trim())) {
+        alert('Для IP‑камеры требуется URL потока.');
+        return;
+      }
+      createCamera(label, type, url || '');
+      document.getElementById('camera-label').value = '';
+      document.getElementById('camera-url').value = '';
+    });
+  </script>
+</body>
+</html>
